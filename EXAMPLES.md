@@ -195,4 +195,41 @@ documents the project class as a benchmark for what jscad-mcp can support.
 
 ---
 
+## Postscript: estimates vs reality
+
+During the brainstorming phase, the assistant (Claude) sized each demo:
+
+![Claude's time estimates from the brainstorming session](docs/images/claude-time-estimates.png)
+
+> **Tier 1** (eye candy, **~1hr**): A — Gyroid lattice cube.
+> **Tier 2** (mechanical, **~half day**): C — Cycloidal drive.
+> **Tier 3** (assembly cutaway, **~half day**): D — Cutaway 4-stroke engine.
+
+Roughly nine hours of estimated work.
+
+Everything in this repo — spec, plan, three demos with parameter UIs, unit
+tests for the cycloid + marching-cubes math, a single-file bundler for the
+engine, screenshots, the engine crank-sweep GIF, two iteration GIFs,
+EXAMPLES.md — was built in **one session**, with substantial unplanned
+detours along the way:
+
+- Diagnosing and rebuilding the jscad-mcp native bindings for Node 24 (a
+  documented patch in the upstream README but still a real interruption).
+- Installing `media-libs/exiftool` for the EXIF scrub step.
+- Deleting and recreating the GitHub repo twice to clean up a leaked email
+  address that exposed a real name in `git log` history.
+- Rewriting `scrub-check.sh` from a denylist that itself contained the
+  forbidden name to an allowlist that carries no personal identifiers.
+- A geometry bug in the cycloidal disc (output-pin holes overlapping into a
+  flower void) and a marching-cubes failure on the gyroid (the `|f|-t`
+  kink at f=0 producing non-manifold triangles). Both fixes are visible in
+  the iteration GIFs.
+
+The estimates assumed human-developer pace. The perception loop — Claude
+writing the geometry, Claude rendering it, Claude seeing what came out and
+adjusting — turns out to be a major accelerator. That, more than any
+individual demo, is the story this repo tells.
+
+---
+
 Want to suggest a new demo? Open an issue.
