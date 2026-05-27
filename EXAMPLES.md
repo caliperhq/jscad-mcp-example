@@ -8,7 +8,14 @@ screenshots from the iteration loop, and how to try it locally or in your browse
 1. [Cycloidal drive reducer](#cycloidal-drive-reducer) — named parts + highlight
 2. [Cutaway 4-stroke engine](#cutaway-4-stroke-engine) — slice (cross-section)
 3. [Gyroid lattice cube](#gyroid-lattice-cube) — slice (TPMS section)
-4. [GPU waterblock](#gpu-waterblock) — real engineering reference
+4. [Lofted vase](#lofted-vase) — extrudeFromSlices morphing cross-section
+5. [Voronoi-pattern panel](#voronoi-pattern-panel) — 2D pattern → extrude
+6. [Threaded bolt + nut](#threaded-bolt--nut) — helical sweep + slice engagement
+7. [Spur gear pair](#spur-gear-pair) — meshing cosine-tooth gears
+8. [Snap-fit parametric box](#snap-fit-parametric-box) — tolerance-driven plastic-part design
+9. [Sliding caliper jaws](#sliding-caliper-jaws) — animated mechanism via parameter sweep
+10. [Heatsink fin array](#heatsink-fin-array) — parametric array + slice between fins
+11. [GPU waterblock](#gpu-waterblock) — real engineering reference
 
 ---
 
@@ -28,13 +35,20 @@ self-intersecting shape. The four named parts make this the showcase demo for
 
 **Screenshots.**
 
-| Iso | Highlighted disc | Highlighted housing |
-|---|---|---|
-| ![iso](examples/screenshots/cycloidal/iso.png) | ![disc](examples/screenshots/cycloidal/highlight_disc.png) | ![housing](examples/screenshots/cycloidal/highlight_pins.png) |
+| Iso | Oblique |
+|---|---|
+| ![iso](examples/screenshots/cycloidal/iso.png) | ![oblique](examples/screenshots/cycloidal/oblique.png) |
 
-| Labeled | Cross-section | Iteration |
+| Highlighted disc | Highlighted housing | Labeled |
 |---|---|---|
-| ![labeled](examples/screenshots/cycloidal/labeled.png) | ![slice](examples/screenshots/cycloidal/slice_z.png) | ![iter](examples/screenshots/cycloidal/iteration.gif) |
+| ![disc](examples/screenshots/cycloidal/highlight_disc.png) | ![housing](examples/screenshots/cycloidal/highlight_housing.png) | ![labeled](examples/screenshots/cycloidal/labeled.png) |
+
+| Cross-section | Iteration |
+|---|---|
+| ![slice](examples/screenshots/cycloidal/slice_z.png) | ![iter](examples/screenshots/cycloidal/iteration.gif) |
+
+Each named part has a distinct color: gray housing, bronze disc, gold input,
+steel-blue output plate — picked so the four roles read at a glance.
 
 The iteration GIF shows the real perception-loop story: the first attempt
 arranged the output-pin holes too close together, so the disc came out as a
@@ -84,21 +98,48 @@ you can tell what each piece does at a glance.
 
 **Screenshots.**
 
-| Iso (cutaway) | Axial section |
+| Iso | Oblique |
 |---|---|
-| ![iso](demos/engine/screenshots/iso.png) | ![slice](demos/engine/screenshots/slice_y.png) |
+| ![iso](demos/engine/screenshots/iso.png) | ![oblique](demos/engine/screenshots/oblique.png) |
 
-| Top-down | Labeled |
-|---|---|
-| ![top](demos/engine/screenshots/slice_z_head.png) | ![labeled](demos/engine/screenshots/labeled.png) |
+| Axial section | Top-down | Labeled |
+|---|---|---|
+| ![section](demos/engine/screenshots/section_axial.png) | ![top](demos/engine/screenshots/top.png) | ![labeled](demos/engine/screenshots/labeled.png) |
 
 **Crank-angle sweep — the centerpiece:**
 
 ![crank sweep](demos/engine/screenshots/crank_sweep.gif)
 
-12 frames at 8 fps, crankAngle stepping 0° → 330° in 30° increments. Piston
+36 frames at 12 fps, crankAngle stepping 0° → 350° in 10° increments. Piston
 travels TDC → BDC → TDC as the crank rotates; conrod sweeps through its arc
-beside the bore.
+beside the bore. The slider-crank's non-linear motion (faster near mid-stroke,
+slower at TDC/BDC) is visible at this frame density.
+
+**One angle is one hypothesis — the conrod story.**
+
+The first build of this demo shipped with a real geometry bug: the
+connecting-rod I-beam shaft was rotated correctly but never translated to
+anchor at the crank pin. Result: the big-end and small-end cylinders sat in
+the right places, but the shaft connecting them floated off in space — lying
+flat on the floor along the +y axis at z = 0, completely disconnected from
+the engine. The bug was invisible in `iso` and the original side slice
+(those were the only two angles the build session rendered) and immediately
+obvious from a front view or with `highlight conrod`.
+
+![engine iteration](demos/engine/screenshots/iteration.gif)
+
+The iteration GIF above shows the discovery: looks-fine-from-iso → side
+view exposes the floating conrod → highlight makes it unambiguous → fix →
+multi-angle confirmation. Two bugs in the rod build had compounded —
+`atan2(dy, dz)` instead of `atan2(dz, dy)` (so the rotation angle pointed
+the shaft nearly horizontal instead of nearly vertical) plus the missing
+anchor translate (so the shaft sat at world origin instead of at the big
+end). Both were obvious *once we looked from the right angle*.
+
+This is the second perception-loop story in this repo, after the cycloidal
+overlapping-holes fix. Together they argue the same thing: one render is
+one hypothesis. Multi-angle inspection isn't a polish step — it's how you
+falsify your assumption that the model is correct.
 
 **Try it.**
 
@@ -177,6 +218,344 @@ In your browser:
 - `wallThreshold` (default 0.6) — solid where `|f(x,y,z)| < t`. Larger = thicker walls.
 - `cubeSize` (default 40 mm) — outer cube.
 - `resolution` (default 48) — marching cubes grid per axis. Higher = smoother, slower.
+
+---
+
+## Lofted vase
+
+**What it is.** A parametric vase built by lofting a circular cross-section
+through four radius control points (base → waist → hip → lip) along height,
+with optional twist. The smoothstep-blended profile and continuous twist
+produce a single watertight `extrudeFromSlices` surface — no booleans, no
+revolution, just per-slice scale and rotation.
+
+**Why it's interesting for jscad-mcp.** Loft surfaces look different from
+every angle, and the slice silhouette is the clean way to see whether the
+profile you wrote matches the profile you imagined. Tuning the four control
+radii is exactly the kind of thing where a render is faster than mental
+arithmetic — and the iso-vs-slice pairing makes the dependency between the
+math and the result obvious.
+
+**Screenshots.**
+
+| Iso | Oblique |
+|---|---|
+| ![iso](examples/screenshots/vase/iso.png) | ![oblique](examples/screenshots/vase/oblique.png) |
+
+| Silhouette (slice x=0) | Top-down |
+|---|---|
+| ![slice](examples/screenshots/vase/slice_x.png) | ![top](examples/screenshots/vase/top.png) |
+
+The slice at `x=0` shows the radius profile directly: foot, narrow waist,
+wide hip, narrowing lip. Tuning a vase becomes "look at the silhouette,
+nudge a control point, rerender."
+
+**Try it.**
+
+Locally:
+
+```
+take_image           file=examples/vase.jscad azimuth=45 elevation=15
+slice                file=examples/vase.jscad axis=x offset=0
+take_image           file=examples/vase.jscad azimuth=0 elevation=85
+```
+
+In your browser:
+[Open in openjscad.xyz](https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/vase_bundled.jscad)
+
+**Parameters.**
+
+- `height` (mm, default 120)
+- `baseRadius`, `waistRadius`, `hipRadius`, `lipRadius` (mm) — four control points along the profile
+- `twistDeg` (default 30) — accumulated twist around Z over full height
+- `segments` (default 72) — cross-section polygon resolution
+- `slices` (default 96) — number of height slices (loft fidelity)
+
+---
+
+## Voronoi-pattern panel
+
+**What it is.** A flat panel with Voronoi-tessellated holes — a common
+decorative / acoustic / structural pattern (speaker grilles, plant
+trellises, cable-management panels). Sites are sampled deterministically
+from a seeded PRNG, each Voronoi cell is computed by half-plane
+intersection (O(N²), fine for the cell counts we use), shrunken inward
+to leave wall material, then extruded and subtracted from a board.
+
+**Why it's interesting for jscad-mcp.** Tuning a Voronoi pattern is a
+classic "stare at the render, twiddle a parameter" exercise: cell count,
+seed, gap, edge margin all interact, and the failure modes (tiny
+slivers at the boundary, cells that collapse to nothing, walls so thin
+they print as a single bead) are obvious in the iso render and
+ambiguous in the parameter table.
+
+**Screenshots.**
+
+| Top-down | Iso |
+|---|---|
+| ![top](examples/screenshots/voronoi_panel/top.png) | ![iso](examples/screenshots/voronoi_panel/iso.png) |
+
+| Oblique (with grid) |
+|---|
+| ![oblique](examples/screenshots/voronoi_panel/oblique_grid.png) |
+
+**Try it.**
+
+Locally:
+
+```
+take_image           file=examples/voronoi_panel.jscad azimuth=0 elevation=85
+take_image           file=examples/voronoi_panel.jscad azimuth=45 elevation=35
+```
+
+In your browser:
+[Open in openjscad.xyz](https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/voronoi_panel_bundled.jscad)
+
+**Parameters.**
+
+- `width`, `height`, `thickness` (mm) — board dimensions
+- `cellCount` (default 25) — number of Voronoi sites
+- `seed` (default 7) — PRNG seed; change for a different random pattern
+- `margin` (mm, default 4) — keep sites this far inside the panel edge
+- `gap` (mm, default 1.4) — wall thickness left between adjacent cells
+
+---
+
+## Threaded bolt + nut
+
+**What it is.** An ISO-style metric hex bolt with a hex nut threaded
+partway up the shaft. Both threads come from the same triangular
+cross-section swept around Z by `extrudeHelical` — the bolt's external
+thread runs from `minorRadius` outward to `majorRadius`; the nut's
+internal thread is the same shape offset by a small radial clearance
+and subtracted from a hex prism.
+
+**Why it's interesting for jscad-mcp.** Threads are the canonical
+"looks right from a parameter table, looks wrong when you render it"
+geometry. Pitch sign, helix start angle, radial clearance, and the
+nut-vs-bolt radial offset all have similar-looking failure modes
+(thread doesn't engage, thread runs backward, thread is wedged into
+the wall). The slice along the bolt axis tells you instantly whether
+the crests and roots actually interlock.
+
+**Screenshots.**
+
+| Iso (hero) | Front | Half-section (slice y=0) |
+|---|---|---|
+| ![iso](examples/screenshots/thread/iso.png) | ![front](examples/screenshots/thread/front.png) | ![slice](examples/screenshots/thread/slice_y.png) |
+
+The slice cuts the assembly in half along the Y axis; the cyan cut
+faces show the thread profile interleaved between bolt and nut.
+
+**Try it.**
+
+Locally:
+
+```
+take_image           file=examples/thread.jscad azimuth=30 elevation=15
+take_image           file=examples/thread.jscad azimuth=90 elevation=5
+```
+
+In your browser:
+[Open in openjscad.xyz](https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/thread_bundled.jscad)
+
+**Parameters.**
+
+- `majorDiameter` (mm, default 8) — bolt major (crest) diameter
+- `pitch` (mm, default 1.25) — axial distance per thread
+- `threadLength`, `shankLength` (mm) — bolt geometry
+- `headHeight`, `headAcross` (mm) — hex head
+- `nutHeight`, `nutAcross` (mm) — hex nut
+- `nutPosition` (mm) — z height of the nut bottom
+- `clearance` (mm, default 0.2) — radial clearance between bolt-major and nut-minor
+
+> **Caveat.** This is a visual demo of the technique, not a printable or
+> turnable fastener. Real ISO threads have truncated crests and roots
+> and a tighter tolerance budget.
+
+---
+
+## Spur gear pair
+
+**What it is.** Two meshing spur gears of equal module, different tooth
+counts. Tooth profile is a smooth cosine modulation of radius around
+each pitch circle — not a true involute, but close enough that the
+geometry of meshing (center distance = r_pA + r_pB, second gear phased
+so its valleys line up with the first gear's peaks at the line of
+centers) is honest.
+
+**Why it's interesting for jscad-mcp.** Mesh quality is something
+that's instantly obvious from a top-down render and slightly tedious
+to reason about analytically. The "did I phase the second gear by
+π/N or 0?" question gets settled in one render. Tooth interference,
+wrong center distance, or off-by-one rotations all jump out the
+moment you look at the pair from directly above.
+
+**Screenshots.**
+
+| Top-down | Iso (hero) | Oblique (with grid) |
+|---|---|---|
+| ![top](examples/screenshots/gear_pair/top.png) | ![iso](examples/screenshots/gear_pair/iso.png) | ![oblique](examples/screenshots/gear_pair/oblique_grid.png) |
+
+**Try it.**
+
+Locally:
+
+```
+take_image           file=examples/gear_pair.jscad azimuth=0 elevation=85
+take_image           file=examples/gear_pair.jscad azimuth=35 elevation=35
+```
+
+In your browser:
+[Open in openjscad.xyz](https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/gear_pair_bundled.jscad)
+
+**Parameters.**
+
+- `module` (mm, default 2) — tooth size; pitch radius = module × N / 2
+- `teethA`, `teethB` — tooth counts of the two gears
+- `thickness` (mm) — face width
+- `boreA`, `boreB` (mm) — shaft hole diameters
+
+> **Caveat.** Cosine teeth are not involute teeth — they roll with a
+> small velocity ripple and don't carry torque as well. For a real
+> drivetrain, generate proper involute flanks instead.
+
+---
+
+## Snap-fit parametric box
+
+**What it is.** A tray-style box with a press-on lid. The box has small
+wedge protrusions on its long walls; the lid's downward skirt has
+matching dimples cut into its inner face. With the lid closed
+(`lidLifted = 0`), the wedges sit inside the dimples. With the lid
+lifted, the parts separate so the snap features are visible.
+
+**Why it's interesting for jscad-mcp.** Snap-fit design is all
+tolerance. `clearance` between the box outer wall and the lid skirt
+inner wall determines whether the lid jams, snaps cleanly, or rattles.
+Wedge depth and dimple depth set the engagement force. None of this is
+intuitable from numbers in a table — render-and-twiddle is the design
+loop.
+
+**Screenshots.**
+
+| Closed | Exploded (lid lifted) |
+|---|---|
+| ![closed](examples/screenshots/snap_box/closed.png) | ![exploded](examples/screenshots/snap_box/exploded.png) |
+
+The exploded view shows the wedge on the box's long wall (small bump
+near the top of the box's front face) and the matching dimple on the
+inside of the lid's skirt.
+
+**Try it.**
+
+Locally:
+
+```
+take_image  file=examples/snap_box.jscad azimuth=40 elevation=25
+take_image  code='<inline override of lidLifted=0>'   # closed view
+```
+
+In your browser:
+[Open in openjscad.xyz](https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/snap_box_bundled.jscad)
+
+**Parameters.**
+
+- `width`, `depth`, `height` (mm) — outer box dimensions
+- `wallThickness`, `floorThickness`, `lidThickness`, `lidSkirtHeight` (mm)
+- `snapZ`, `snapWidth`, `snapDepth` (mm) — wedge geometry
+- `clearance` (mm) — radial gap between box outer wall and lid skirt
+- `lidLifted` (mm) — z offset for the exploded view (0 = closed)
+
+---
+
+## Sliding caliper jaws
+
+**What it is.** A stylized vernier caliper: a long beam, a fixed jaw at
+one end, and a movable jaw that slides along the beam. The
+`jawExtension` parameter is the inside-face distance between the two
+jaws — sweep it to animate the caliper opening and closing.
+
+**Why it's interesting for jscad-mcp.** Animated mechanisms are where
+parameter sweeps shine. The crank-sweep on the engine showed
+slider-crank kinematics; this one is simpler (pure translation) but
+makes the value of "GIF, not still" obvious — the geometry doesn't
+look like a caliper until you see it move.
+
+**Screenshots.**
+
+| Iso (hero) |
+|---|
+| ![iso](examples/screenshots/caliper/iso.png) |
+
+**Jaw extension sweep (36 frames):**
+
+![sweep](examples/screenshots/caliper/jaw_sweep.gif)
+
+`jawExtension` ramps from 5 mm to 110 mm over 36 frames at 12 fps.
+
+**Try it.**
+
+Locally:
+
+```
+take_image  file=examples/caliper.jscad azimuth=35 elevation=30
+```
+
+In your browser:
+[Open in openjscad.xyz](https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/caliper_bundled.jscad)
+
+**Parameters.**
+
+- `beamLength`, `beamWidth`, `beamHeight` (mm) — beam dimensions
+- `jawBlade`, `jawSpan`, `jawY` (mm) — jaw geometry
+- `sliderLength`, `sliderClearance` (mm) — movable-jaw slider sleeve
+- `jawExtension` (mm) — opening between the two inner jaw faces
+
+---
+
+## Heatsink fin array
+
+**What it is.** A rectangular base plate with N parallel fins. Fins
+are equally spaced across the base width with a small edge margin.
+Pure cuboid arithmetic — no booleans needed; just `union` of a base
+and a generated fin array.
+
+**Why it's interesting for jscad-mcp.** Heatsinks are the canonical
+"how many fins fit?" parameter exercise. Push `finCount` up and the
+inter-fin gap shrinks; below the printer's wall width the fins merge
+into a solid block in the slice view, even though the parameter table
+still says they're separate. This is the cousin of the GPU waterblock
+below — same kind of geometry, more constrained tolerance budget.
+
+**Screenshots.**
+
+| Iso | Slice (between fins) |
+|---|---|
+| ![iso](examples/screenshots/heatsink/iso.png) | ![slice](examples/screenshots/heatsink/slice_y.png) |
+
+The slice cuts at `y = 0` (perpendicular to the fins) so each fin
+appears as a thin vertical bar standing on the base. Try bumping
+`finCount` from 14 toward 30 and watch the bars merge.
+
+**Try it.**
+
+Locally:
+
+```
+take_image  file=examples/heatsink.jscad azimuth=35 elevation=25
+slice       file=examples/heatsink.jscad axis=y offset=0
+```
+
+In your browser:
+[Open in openjscad.xyz](https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/heatsink_bundled.jscad)
+
+**Parameters.**
+
+- `baseWidth`, `baseDepth`, `baseThickness` (mm) — base plate
+- `finCount` — number of parallel fins
+- `finHeight`, `finThickness` (mm) — fin geometry
+- `finMargin` (mm) — distance from base edge to the outermost fin
 
 ---
 

@@ -8,13 +8,33 @@ Each demo is chosen because **it would be painful to design without the visual f
 
 | Cycloidal drive | Engine cutaway |
 |---|---|
-| [![cycloidal](examples/screenshots/cycloidal/iso.png)](EXAMPLES.md#cycloidal-drive-reducer) | [![engine](demos/engine/screenshots/slice_y.png)](EXAMPLES.md#cutaway-4-stroke-engine) |
-| Named parts + highlight, with parametric cycloid profile. The "highlight" feature lets you spotlight any of the four named parts (`eccentric_input`, `cycloid_disc`, `pin_housing`, `output_pins`). | Cross-section `slice` view through a colored cutaway engine — block, head, piston, conrod, crank, valves, ports, spark plug. |
+| [![cycloidal](examples/screenshots/cycloidal/iso.png)](EXAMPLES.md#cycloidal-drive-reducer) | [![engine](demos/engine/screenshots/iso.png)](EXAMPLES.md#cutaway-4-stroke-engine) |
+| Per-part colored cycloidal reducer with named parts + highlight. The "highlight" feature lets you spotlight any of the four named parts (`eccentric_input`, `cycloid_disc`, `pin_housing`, `output_pins`). | Single-cylinder 4-stroke cutaway with `slice` cross-sections — block, head, piston, conrod, crank, valves, ports, spark plug. |
 
 | Gyroid lattice | Engine — crank-angle sweep |
 |---|---|
 | [![gyroid](examples/screenshots/gyroid/iso.png)](EXAMPLES.md#gyroid-lattice-cube) | ![sweep](demos/engine/screenshots/crank_sweep.gif) |
-| Marching-cubes-generated triply-periodic minimal surface. The `slice` tool reveals the iconic gyroid cross-section. | 12-frame parameter sweep stepping `crankAngle` 0° → 330°. Piston cycles TDC → BDC → TDC. |
+| Marching-cubes-generated triply-periodic minimal surface. The `slice` tool reveals the iconic gyroid cross-section. | 36-frame parameter sweep stepping `crankAngle` 0° → 350° at 12 fps. Piston cycles TDC → BDC → TDC; conrod sweeps its arc. |
+
+| Lofted vase | Voronoi panel |
+|---|---|
+| [![vase](examples/screenshots/vase/iso.png)](EXAMPLES.md#lofted-vase) | [![voronoi](examples/screenshots/voronoi_panel/iso.png)](EXAMPLES.md#voronoi-pattern-panel) |
+| `extrudeFromSlices` morphing a circular cross-section through four radius control points. | Seeded random sites → half-plane-intersection cells → extrude + subtract holes. |
+
+| Threaded bolt + nut | Spur gear pair |
+|---|---|
+| [![thread](examples/screenshots/thread/iso.png)](EXAMPLES.md#threaded-bolt--nut) | [![gears](examples/screenshots/gear_pair/iso.png)](EXAMPLES.md#spur-gear-pair) |
+| `extrudeHelical` triangular thread profile on both bolt and nut, with slice exposing thread engagement. | Cosine-tooth gears at correct center distance, second gear phased so its valley meshes with the first gear's peak. |
+
+| Snap-fit box | Caliper — jaw sweep |
+|---|---|
+| [![snap](examples/screenshots/snap_box/exploded.png)](EXAMPLES.md#snap-fit-parametric-box) | ![caliper](examples/screenshots/caliper/jaw_sweep.gif) |
+| Tolerance-driven snap features: wedges on the box wall, dimples in the lid skirt. Lift the lid to see the catch. | Stylized vernier caliper with `jawExtension` swept 5 → 110 mm over 36 frames at 12 fps. |
+
+| Heatsink fin array |
+|---|
+| [![heatsink](examples/screenshots/heatsink/iso.png)](EXAMPLES.md#heatsink-fin-array) |
+| Parametric base + N parallel fins. The slice exposes the inter-fin gap — push fin count too high and watch the gap collapse. |
 
 Full walkthroughs, iteration GIFs, parameter docs, and openjscad.xyz "Try in browser" links: **[EXAMPLES.md](EXAMPLES.md)**.
 
@@ -40,17 +60,26 @@ To **render** the demos visually you need [jscad-mcp](https://github.com/caliper
 ## Structure
 
 ```
-examples/                    single-file demos
-  cycloidal_drive.jscad
-  cycloidal_drive_bundled.jscad   generated single-file bundle for openjscad.xyz
-  gyroid.jscad
-  gyroid_bundled.jscad            generated single-file bundle for openjscad.xyz
-  lib/                       shared helpers (cycloid math, gyroid field, marching cubes + tables)
-  screenshots/               per-demo screenshots + GIFs
-demos/engine/                multi-file demo (cutaway engine)
-  assembly.js                entry point
+examples/                    single-file demos (one .jscad each, math in lib/)
+  cycloidal_drive.jscad      named parts + highlight
+  gyroid.jscad               marching-cubes TPMS
+  vase.jscad                 extrudeFromSlices lofting
+  voronoi_panel.jscad        2D pattern → extrude
+  thread.jscad               extrudeHelical bolt + nut
+  gear_pair.jscad            meshing cosine-tooth gears
+  snap_box.jscad             tolerance-driven snap fit
+  caliper.jscad              animated mechanism
+  heatsink.jscad             parametric fin array
+  *_bundled.jscad            generated single-file bundles for openjscad.xyz
+  lib/                       shared math (cycloid, gyroid, marching cubes, vase profile,
+                               voronoi, thread, gear, loft helpers)
+  screenshots/<demo>/        per-demo screenshots + GIFs
+demos/engine/                multi-file demo (cutaway 4-stroke engine)
+  assembly.js                entry point + per-part PART_COLORS
   block.js, head.js, ...     per-part modules
-  engine_bundled.jscad       generated single-file bundle for openjscad.xyz
+  engine_bundled.jscad       generated single-file bundle
+  screenshots/               iso, oblique, section_axial, top, labeled,
+                               crank_sweep.gif (36 frames), iteration.gif
 scripts/
   bundle-engine.js           regenerates engine_bundled.jscad
   bundle-examples.js         regenerates the examples/*_bundled.jscad files
