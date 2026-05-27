@@ -12,7 +12,11 @@ const { translate } = transforms
  * Origin: bottom-center of the bore. +Z up.
  */
 const buildBlock = (p) => {
-  const blockHeight = p.stroke + 60          // room for piston travel + skirt + crankcase
+  // blockHeight must reach above wrist_TDC (= conrodLength) plus crown
+  // compression + head clearance. The +40 absorbs the 14mm compression
+  // height, ~6mm crown-to-head clearance, and ~20mm of crankcase below
+  // z=0 that the block also covers.
+  const blockHeight = p.conrodLength + 40
   const blockSide   = p.bore + 30            // wall thickness around bore
   const boreR       = p.bore / 2
   const cutawayDepth = blockSide / 2 + 1

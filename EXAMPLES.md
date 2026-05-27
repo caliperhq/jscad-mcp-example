@@ -141,6 +141,19 @@ overlapping-holes fix. Together they argue the same thing: one render is
 one hypothesis. Multi-angle inspection isn't a polish step — it's how you
 falsify your assumption that the model is correct.
 
+A *third* round of fixes followed after publication: the crankshaft's main
+journal axis was rotated 90° from what the conrod kinematics expected (pin
+orbits in Y-Z, so journal must run along X — it ran along Y); the piston's
+crown was computed below the wrist instead of above (so the conrod's
+small-end visibly stuck up through the piston top); the conrod's bearing
+cylinders were perpendicular to the pins they were supposed to wrap; and
+the crankshaft had no webs, leaving the pin floating with no visible
+connection to the journal. Each of these bugs was *invisible* until the
+previous bug was fixed — the floating-conrod fix had to land before the
+crank-axis mismatch could even be seen. Multi-angle inspection catches
+one round; multi-*pass* inspection (look again after every fix, from every
+angle, against a real-world reference) catches the rest.
+
 **Try it.**
 
 Locally:

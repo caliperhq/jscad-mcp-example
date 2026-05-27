@@ -12,7 +12,7 @@ const { translate, rotate } = transforms
 const buildHead = (p) => {
   const headThick = 24
   const blockSide = p.bore + 30
-  const blockHeight = p.stroke + 60
+  const blockHeight = p.conrodLength + 40   // must match block.js
   const headZBottom = blockHeight - 20
   const cutawayDepth = blockSide / 2 + 1
 

@@ -5,21 +5,23 @@ const { subtract, union } = booleans
 const { translate } = transforms
 
 /**
- * Piston positioned by crankAngle: vertical position is
- *   y_piston = r*cos(theta) + sqrt(L^2 - (r*sin(theta))^2)   (slider-crank kinematics)
- * with r = stroke/2 and L = conrodLength. Result is the crown height above
- * crank center; we offset so TDC sits just below the head dome.
+ * Piston positioned by crankAngle. Wrist pin sits inside the piston at
+ * z = wristZ (per slider-crank kinematics); the crown sits above it by
+ * COMPRESSION_HEIGHT. This is the physically-correct layout — the
+ * earlier version put the crown below the wrist, so the conrod's
+ * small-end stuck up through the piston top.
  */
+const COMPRESSION_HEIGHT = 14   // mm from wrist-pin centerline to crown
+
 const buildPiston = (p) => {
   const r = p.stroke / 2
   const L = p.conrodLength
   const thetaRad = (p.crankAngle * Math.PI) / 180
+
+  // Slider-crank wrist position (same formula as conrod.js)
   const yp = r * Math.cos(thetaRad) + Math.sqrt(L * L - (r * Math.sin(thetaRad)) ** 2)
-  // Re-frame so TDC (theta=0, yp = r+L) places crown just under head dome.
-  const blockHeight = p.stroke + 60
-  const headZ = blockHeight - 20
-  const tdcCrownZ = headZ - 8   // 8mm crown clearance
-  const crownZ = tdcCrownZ - ((r + L) - yp)
+  const wristZ = -r + yp   // crank center is at z = -r
+  const crownZ = wristZ + COMPRESSION_HEIGHT
 
   const pistonHeight = p.bore * 0.7
   const ringGroove1Z = crownZ - 4

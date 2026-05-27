@@ -40,10 +40,15 @@ const buildConrod = (p) => {
     rotate([angleDeg * Math.PI / 180, 0, 0], shaft)
   )
 
+  // Big and small ends are bearings that wrap the crank pin and the wrist
+  // pin. Both pins run along the X axis (parallel to the crankshaft's
+  // rotation axis), so the bearing cylinders must be oriented along X too,
+  // not the default Z. Without this they cross the pins at a single line
+  // and the conrod reads as disconnected from the crank.
   const bigEnd = translate([0, crankPinY, crankPinZ],
-    cylinder({ radius: 8, height: 8, segments: 48 }))
+    rotate([0, Math.PI / 2, 0], cylinder({ radius: 9, height: 12, segments: 48 })))
   const smallEnd = translate([0, wristY, wristZ],
-    cylinder({ radius: 5, height: 8, segments: 32 }))
+    rotate([0, Math.PI / 2, 0], cylinder({ radius: 6, height: 10, segments: 32 })))
 
   return union(positioned, bigEnd, smallEnd)
 }

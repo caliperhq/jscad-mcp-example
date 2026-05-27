@@ -17,7 +17,11 @@ const { translate } = transforms
  * Origin: bottom-center of the bore. +Z up.
  */
 const buildBlock = (p) => {
-  const blockHeight = p.stroke + 60          // room for piston travel + skirt + crankcase
+  // blockHeight must reach above wrist_TDC (= conrodLength) plus crown
+  // compression + head clearance. The +40 absorbs the 14mm compression
+  // height, ~6mm crown-to-head clearance, and ~20mm of crankcase below
+  // z=0 that the block also covers.
+  const blockHeight = p.conrodLength + 40
   const blockSide   = p.bore + 30            // wall thickness around bore
   const boreR       = p.bore / 2
   const cutawayDepth = blockSide / 2 + 1
@@ -50,7 +54,7 @@ const { translate, rotate } = transforms
 const buildHead = (p) => {
   const headThick = 24
   const blockSide = p.bore + 30
-  const blockHeight = p.stroke + 60
+  const blockHeight = p.conrodLength + 40   // must match block.js
   const headZBottom = blockHeight - 20
   const cutawayDepth = blockSide / 2 + 1
 
@@ -103,21 +107,23 @@ const { subtract, union } = booleans
 const { translate } = transforms
 
 /**
- * Piston positioned by crankAngle: vertical position is
- *   y_piston = r*cos(theta) + sqrt(L^2 - (r*sin(theta))^2)   (slider-crank kinematics)
- * with r = stroke/2 and L = conrodLength. Result is the crown height above
- * crank center; we offset so TDC sits just below the head dome.
+ * Piston positioned by crankAngle. Wrist pin sits inside the piston at
+ * z = wristZ (per slider-crank kinematics); the crown sits above it by
+ * COMPRESSION_HEIGHT. This is the physically-correct layout — the
+ * earlier version put the crown below the wrist, so the conrod's
+ * small-end stuck up through the piston top.
  */
+const COMPRESSION_HEIGHT = 14   // mm from wrist-pin centerline to crown
+
 const buildPiston = (p) => {
   const r = p.stroke / 2
   const L = p.conrodLength
   const thetaRad = (p.crankAngle * Math.PI) / 180
+
+  // Slider-crank wrist position (same formula as conrod.js)
   const yp = r * Math.cos(thetaRad) + Math.sqrt(L * L - (r * Math.sin(thetaRad)) ** 2)
-  // Re-frame so TDC (theta=0, yp = r+L) places crown just under head dome.
-  const blockHeight = p.stroke + 60
-  const headZ = blockHeight - 20
-  const tdcCrownZ = headZ - 8   // 8mm crown clearance
-  const crownZ = tdcCrownZ - ((r + L) - yp)
+  const wristZ = -r + yp   // crank center is at z = -r
+  const crownZ = wristZ + COMPRESSION_HEIGHT
 
   const pistonHeight = p.bore * 0.7
   const ringGroove1Z = crownZ - 4
@@ -181,10 +187,15 @@ const buildConrod = (p) => {
     rotate([angleDeg * Math.PI / 180, 0, 0], shaft)
   )
 
+  // Big and small ends are bearings that wrap the crank pin and the wrist
+  // pin. Both pins run along the X axis (parallel to the crankshaft's
+  // rotation axis), so the bearing cylinders must be oriented along X too,
+  // not the default Z. Without this they cross the pins at a single line
+  // and the conrod reads as disconnected from the crank.
   const bigEnd = translate([0, crankPinY, crankPinZ],
-    cylinder({ radius: 8, height: 8, segments: 48 }))
+    rotate([0, Math.PI / 2, 0], cylinder({ radius: 9, height: 12, segments: 48 })))
   const smallEnd = translate([0, wristY, wristZ],
-    cylinder({ radius: 5, height: 8, segments: 32 }))
+    rotate([0, Math.PI / 2, 0], cylinder({ radius: 6, height: 10, segments: 32 })))
 
   return union(positioned, bigEnd, smallEnd)
 }
@@ -194,41 +205,62 @@ return { buildConrod }
 })()
 
 const { buildCrankshaft } = (() => {
-const { primitives, booleans, transforms } = require('@jscad/modeling')
-const { cylinder, cuboid } = primitives
+const { primitives, booleans, transforms, hulls } = require('@jscad/modeling')
+const { cylinder } = primitives
 const { union } = booleans
 const { translate, rotate } = transforms
+const { hullChain } = hulls
 
-/** Simplified crank: main journal + offset crank pin + counterweight. */
+/**
+ * Single-cylinder crankshaft: main journal along X + offset crank pin +
+ * two stadium-shaped webs connecting the journal to the pin. The webs
+ * make this read as one continuous part (the previous version had the
+ * pin floating with no visible connection to the journal). For a real
+ * multi-cylinder crankshaft this whole assembly would repeat at each
+ * throw with the angular phasing of the firing order.
+ */
+const JOURNAL_RADIUS = 12
+const PIN_RADIUS     = 8
+const WEB_THICKNESS  = 7    // X-thickness of each crank web
+const PIN_LENGTH     = 20   // X length of the crank pin (gap between webs)
+const JOURNAL_STUB   = 10   // how far the journal sticks past each web
+
 const buildCrankshaft = (p) => {
   const r = p.stroke / 2
   const thetaRad = (p.crankAngle * Math.PI) / 180
-  const crankCenterZ = -r
+  const crankCenterZ = -r   // main journal axis sits at z = -r
 
-  // Main journal: axis along X (perpendicular to the Y-Z plane the pin
-  // orbits in). Conrod.js puts the crank pin at (0, r·sinθ, -r+r·cosθ),
-  // so the rotation axis is X. The journal length is sized to read in
-  // the cutaway view — one end emerges from the +X cutaway face, the
-  // other extends a short way into the crankcase.
-  const journalLength = p.bore + 10
+  // Pin offset from journal axis (in the Y-Z rotation plane)
+  const offsetY = r * Math.sin(thetaRad)
+  const offsetZ = r * Math.cos(thetaRad)
+
+  // ---- Main journal: long cylinder along X --------------------------
+  const journalLength = PIN_LENGTH + 2 * WEB_THICKNESS + 2 * JOURNAL_STUB
   const mainJournal = translate([0, 0, crankCenterZ],
-    rotate([0, Math.PI / 2, 0], cylinder({ radius: 12, height: journalLength, segments: 48 })))
+    rotate([0, Math.PI / 2, 0],
+      cylinder({ radius: JOURNAL_RADIUS, height: journalLength, segments: 48 })))
 
-  // Crank pin at the rotating offset position, axis also along X
-  const pinY = r * Math.sin(thetaRad)
-  const pinZ = crankCenterZ + r * Math.cos(thetaRad)
-  const pin = translate([0, pinY, pinZ],
-    rotate([0, Math.PI / 2, 0], cylinder({ radius: 8, height: 18, segments: 32 })))
+  // ---- Crank pin: cylinder along X, offset in Y-Z by the throw -------
+  const pin = translate([0, offsetY, crankCenterZ + offsetZ],
+    rotate([0, Math.PI / 2, 0],
+      cylinder({ radius: PIN_RADIUS, height: PIN_LENGTH, segments: 32 })))
 
-  // Counterweight: thin slab in the Y-Z rotation plane (X = journal axis),
-  // positioned opposite the pin. Roughly square in Y-Z so it reads as a
-  // crank web rather than a long arm.
-  const cwY = -r * 0.6 * Math.sin(thetaRad)
-  const cwZ = crankCenterZ - r * 0.6 * Math.cos(thetaRad)
-  const counterweight = translate([0, cwY, cwZ],
-    cuboid({ size: [14, r * 0.9, r * 0.9] }))
+  // ---- Webs: hull two short along-X disks (journal end + pin end) ----
+  // hullChain wraps a stadium around both — the canonical crank-web
+  // shape. Build the template at the origin, then translate two copies
+  // in X to flank the pin and onto the journal axis at z=crankCenterZ.
+  const journalDisk = rotate([0, Math.PI / 2, 0],
+    cylinder({ radius: JOURNAL_RADIUS, height: WEB_THICKNESS, segments: 48 }))
+  const pinDisk = translate([0, offsetY, offsetZ],
+    rotate([0, Math.PI / 2, 0],
+      cylinder({ radius: PIN_RADIUS, height: WEB_THICKNESS, segments: 32 })))
+  const webTemplate = hullChain(journalDisk, pinDisk)
 
-  return union(mainJournal, pin, counterweight)
+  const webOuterOffset = PIN_LENGTH / 2 + WEB_THICKNESS / 2
+  const leftWeb  = translate([-webOuterOffset, 0, crankCenterZ], webTemplate)
+  const rightWeb = translate([ webOuterOffset, 0, crankCenterZ], webTemplate)
+
+  return union(mainJournal, pin, leftWeb, rightWeb)
 }
 
 
@@ -243,7 +275,7 @@ const { translate } = transforms
 
 const _valve = (p, openFraction, side) => {
   // side = -1 for intake (-Y), +1 for exhaust (+Y)
-  const blockHeight = p.stroke + 60
+  const blockHeight = p.conrodLength + 40
   const headZ = blockHeight - 20
   const stemR = p.bore * 0.025
   const headR = p.bore * 0.18
@@ -263,7 +295,7 @@ const buildIntakeValve  = (p) => _valve(p, p.intakeValveOpen, -1)
 const buildExhaustValve = (p) => _valve(p, p.exhaustValveOpen, +1)
 
 const buildSparkPlug = (p) => {
-  const blockHeight = p.stroke + 60
+  const blockHeight = p.conrodLength + 40
   const headZ = blockHeight - 20
   return translate([0, 0, headZ + 20],
     cylinder({ radius: p.bore * 0.05, height: 30, segments: 24 }))
@@ -284,7 +316,7 @@ const { translate, rotate } = transforms
 // subtracted from the head; main() returns them as overlay solids. Visitor
 // sees the airflow paths.
 const _port = (p, side) => {
-  const blockHeight = p.stroke + 60
+  const blockHeight = p.conrodLength + 40
   const headZ = blockHeight - 20
   const yOffset = side * p.bore * 0.22
 

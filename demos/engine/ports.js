@@ -9,7 +9,7 @@ const { translate, rotate } = transforms
 // subtracted from the head; main() returns them as overlay solids. Visitor
 // sees the airflow paths.
 const _port = (p, side) => {
-  const blockHeight = p.stroke + 60
+  const blockHeight = p.conrodLength + 40
   const headZ = blockHeight - 20
   const yOffset = side * p.bore * 0.22
 

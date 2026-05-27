@@ -6,7 +6,7 @@ const { translate } = transforms
 
 const _valve = (p, openFraction, side) => {
   // side = -1 for intake (-Y), +1 for exhaust (+Y)
-  const blockHeight = p.stroke + 60
+  const blockHeight = p.conrodLength + 40
   const headZ = blockHeight - 20
   const stemR = p.bore * 0.025
   const headR = p.bore * 0.18
@@ -26,7 +26,7 @@ const buildIntakeValve  = (p) => _valve(p, p.intakeValveOpen, -1)
 const buildExhaustValve = (p) => _valve(p, p.exhaustValveOpen, +1)
 
 const buildSparkPlug = (p) => {
-  const blockHeight = p.stroke + 60
+  const blockHeight = p.conrodLength + 40
   const headZ = blockHeight - 20
   return translate([0, 0, headZ + 20],
     cylinder({ radius: p.bore * 0.05, height: 30, segments: 24 }))
