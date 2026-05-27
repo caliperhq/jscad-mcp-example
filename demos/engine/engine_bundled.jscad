@@ -221,9 +221,9 @@ const { hullChain } = hulls
  */
 const JOURNAL_RADIUS = 12
 const PIN_RADIUS     = 8
-const WEB_THICKNESS  = 7    // X-thickness of each crank web
-const PIN_LENGTH     = 20   // X length of the crank pin (gap between webs)
-const JOURNAL_STUB   = 10   // how far the journal sticks past each web
+const WEB_THICKNESS  = 8    // X-thickness of each crank web
+const PIN_LENGTH     = 22   // X length of the crank pin (gap between webs)
+const JOURNAL_STUB   = 18   // length of each main-journal segment past a web
 
 const buildCrankshaft = (p) => {
   const r = p.stroke / 2
@@ -234,11 +234,18 @@ const buildCrankshaft = (p) => {
   const offsetY = r * Math.sin(thetaRad)
   const offsetZ = r * Math.cos(thetaRad)
 
-  // ---- Main journal: long cylinder along X --------------------------
-  const journalLength = PIN_LENGTH + 2 * WEB_THICKNESS + 2 * JOURNAL_STUB
-  const mainJournal = translate([0, 0, crankCenterZ],
-    rotate([0, Math.PI / 2, 0],
-      cylinder({ radius: JOURNAL_RADIUS, height: journalLength, segments: 48 })))
+  // X-position of the OUTER face of each web (and inner face of journal)
+  const webOuterX = PIN_LENGTH / 2 + WEB_THICKNESS
+
+  // ---- Main journal: TWO segments split by the throw ----------------
+  // A real crankshaft has a gap in the main journal at every throw —
+  // the web + pin assembly fills that gap with an offset rotating
+  // mass. Without the gap, the journal would pass through the webs
+  // and the part couldn't physically rotate.
+  const journalSegment = rotate([0, Math.PI / 2, 0],
+    cylinder({ radius: JOURNAL_RADIUS, height: JOURNAL_STUB, segments: 48 }))
+  const leftJournal  = translate([-(webOuterX + JOURNAL_STUB / 2), 0, crankCenterZ], journalSegment)
+  const rightJournal = translate([ (webOuterX + JOURNAL_STUB / 2), 0, crankCenterZ], journalSegment)
 
   // ---- Crank pin: cylinder along X, offset in Y-Z by the throw -------
   const pin = translate([0, offsetY, crankCenterZ + offsetZ],
@@ -248,7 +255,7 @@ const buildCrankshaft = (p) => {
   // ---- Webs: hull two short along-X disks (journal end + pin end) ----
   // hullChain wraps a stadium around both — the canonical crank-web
   // shape. Build the template at the origin, then translate two copies
-  // in X to flank the pin and onto the journal axis at z=crankCenterZ.
+  // in X to flank the pin and sit on the journal axis at z=crankCenterZ.
   const journalDisk = rotate([0, Math.PI / 2, 0],
     cylinder({ radius: JOURNAL_RADIUS, height: WEB_THICKNESS, segments: 48 }))
   const pinDisk = translate([0, offsetY, offsetZ],
@@ -256,11 +263,11 @@ const buildCrankshaft = (p) => {
       cylinder({ radius: PIN_RADIUS, height: WEB_THICKNESS, segments: 32 })))
   const webTemplate = hullChain(journalDisk, pinDisk)
 
-  const webOuterOffset = PIN_LENGTH / 2 + WEB_THICKNESS / 2
-  const leftWeb  = translate([-webOuterOffset, 0, crankCenterZ], webTemplate)
-  const rightWeb = translate([ webOuterOffset, 0, crankCenterZ], webTemplate)
+  const webCenterX = PIN_LENGTH / 2 + WEB_THICKNESS / 2
+  const leftWeb  = translate([-webCenterX, 0, crankCenterZ], webTemplate)
+  const rightWeb = translate([ webCenterX, 0, crankCenterZ], webTemplate)
 
-  return union(mainJournal, pin, leftWeb, rightWeb)
+  return union(leftJournal, rightJournal, pin, leftWeb, rightWeb)
 }
 
 
