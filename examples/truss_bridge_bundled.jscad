@@ -35,7 +35,7 @@ const { colorize } = colors
 const DEFAULTS = {
   span:            200,  // mm, end-to-end
   panels:          6,    // panel count (N+1 vertical posts)
-  trussHeight:     35,
+  trussHeight:     50,
   deckWidth:       28,   // inside-truss gauge
   memberThickness: 1.6,  // diagonals + verticals
   chordThickness:  2.4,  // top + bottom chord
@@ -49,7 +49,7 @@ const DEFAULTS = {
 const getParameterDefinitions = () => [
   { name: 'span',            type: 'number', initial: 200, min: 80,  max: 400, step: 10,  caption: 'Span length (mm)' },
   { name: 'panels',          type: 'int',    initial: 6,   min: 3,   max: 12,  step: 1,   caption: 'Panel count' },
-  { name: 'trussHeight',     type: 'number', initial: 35,  min: 15,  max: 70,  step: 1,   caption: 'Truss height (mm)' },
+  { name: 'trussHeight',     type: 'number', initial: 50,  min: 25,  max: 90,  step: 1,   caption: 'Truss height (mm)' },
   { name: 'deckWidth',       type: 'number', initial: 28,  min: 18,  max: 60,  step: 1,   caption: 'Deck (gauge) width (mm)' },
   { name: 'memberThickness', type: 'number', initial: 1.6, min: 0.8, max: 4,   step: 0.1, caption: 'Vertical/diagonal thickness (mm)' },
   { name: 'chordThickness',  type: 'number', initial: 2.4, min: 1.2, max: 5,   step: 0.1, caption: 'Top/bottom chord thickness (mm)' },
@@ -183,25 +183,57 @@ const buildRails = (p) => {
 }
 
 const buildPortals = (p) => {
-  // X-bracing across the top at the two entry portals (x=0 and x=span)
+  // Portal frame at each end — leaves an open arch tall enough for
+  // a train to pass through. Structure (bottom to top):
+  //   • open opening from deck up to the portal lintel
+  //   • lintel (horizontal strut spanning between the two end posts)
+  //   • knee braces at the inside top corners (the iconic Pratt gusset)
+  //   • optional X-bracing in the small band between lintel and top strut
+  //   • top strut hugging the top chord
   const zT  = p.trussHeight
   const tM  = p.memberThickness
   const y0  = p.deckWidth / 2 + tM / 2
-  const w   = 2 * y0                        // full width between truss centerlines
-  const h   = zT - p.chordThickness - 6     // leave headroom below top chord
-  const len = Math.hypot(w, h)
-  const ang = Math.atan2(h, w)
+  const w   = 2 * y0
+  const deckTopZ  = p.chordThickness + p.floorBeamHeight + p.deckThickness + p.tieHeight + p.railHeight
+  const headroom  = (zT - p.chordThickness) - deckTopZ
+  // Reserve at least 70% of the available headroom for the train opening.
+  const clearance = Math.max(headroom * 0.7, headroom - 12)
+  const lintelZ   = deckTopZ + clearance
+  const topStrutZ = zT - p.chordThickness / 2 - tM
+  const xBraceH   = Math.max(0, topStrutZ - lintelZ - tM)
+  const kneeSize  = Math.min(8, Math.max(3, clearance * 0.18))
+  const kneeLen   = kneeSize * Math.SQRT2
   const out = []
   for (const x of [0, p.span]) {
-    // top horizontal of portal
+    // top strut (snug under the top chord)
     out.push(cuboid({
       size:   [tM, w, tM],
-      center: [x, 0, zT - p.chordThickness / 2 - tM]
+      center: [x, 0, topStrutZ]
     }))
-    // X members
+    // portal lintel (train-clearance ceiling)
+    out.push(cuboid({
+      size:   [tM, w, tM],
+      center: [x, 0, lintelZ]
+    }))
+    // X-bracing only in the band above the lintel
+    if (xBraceH > 1) {
+      const len = Math.hypot(w, xBraceH)
+      const ang = Math.atan2(xBraceH, w)
+      for (const s of [+1, -1]) {
+        out.push(translate([x, 0, (topStrutZ + lintelZ) / 2],
+          rotate([s * ang, 0, 0], cuboid({ size: [tM, len, tM] }))
+        ))
+      }
+    }
+    // Knee braces: short 45° diagonals at the inside top corners,
+    // springing from the post downward-inward to the lintel.
     for (const s of [+1, -1]) {
-      out.push(translate([x, 0, zT - p.chordThickness - h / 2 - 1],
-        rotate([s * ang, 0, 0], cuboid({ size: [tM, len, tM] }))
+      const cy = s * (y0 - kneeSize / 2)
+      const cz = lintelZ - kneeSize / 2
+      out.push(translate([x, cy, cz],
+        rotate([-s * Math.PI / 4, 0, 0],
+          cuboid({ size: [tM, kneeLen, tM] })
+        )
       ))
     }
   }
