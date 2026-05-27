@@ -115,44 +115,88 @@ travels TDC → BDC → TDC as the crank rotates; conrod sweeps through its arc
 beside the bore. The slider-crank's non-linear motion (faster near mid-stroke,
 slower at TDC/BDC) is visible at this frame density.
 
-**One angle is one hypothesis — the conrod story.**
+**One angle is one hypothesis — the engine's four-round iteration story.**
 
-The first build of this demo shipped with a real geometry bug: the
-connecting-rod I-beam shaft was rotated correctly but never translated to
-anchor at the crank pin. Result: the big-end and small-end cylinders sat in
-the right places, but the shaft connecting them floated off in space — lying
-flat on the floor along the +y axis at z = 0, completely disconnected from
-the engine. The bug was invisible in `iso` and the original side slice
-(those were the only two angles the build session rendered) and immediately
-obvious from a front view or with `highlight conrod`.
+This is the longest perception-loop story in the repo. The engine
+shipped to `main` *four* times with bugs that the previous round of
+inspection couldn't see, because each bug was hidden behind the one
+in front of it. Each round was tagged in git (`fix(engine): …`) so the
+arc is visible in `git log`.
 
 ![engine iteration](demos/engine/screenshots/iteration.gif)
 
-The iteration GIF above shows the discovery: looks-fine-from-iso → side
-view exposes the floating conrod → highlight makes it unambiguous → fix →
-multi-angle confirmation. Two bugs in the rod build had compounded —
-`atan2(dy, dz)` instead of `atan2(dz, dy)` (so the rotation angle pointed
-the shaft nearly horizontal instead of nearly vertical) plus the missing
-anchor translate (so the shaft sat at world origin instead of at the big
-end). Both were obvious *once we looked from the right angle*.
+The iteration GIF above is the canonical version of the story —
+buggy-iso looks fine → side view exposes the floating conrod →
+`highlight conrod` makes the disconnect unambiguous → fix → multi-angle
+confirmation. But the actual repo history had four such cycles.
 
-This is the second perception-loop story in this repo, after the cycloidal
-overlapping-holes fix. Together they argue the same thing: one render is
-one hypothesis. Multi-angle inspection isn't a polish step — it's how you
-falsify your assumption that the model is correct.
+**Round 1 — the floating conrod (commit `3421ab4`).** The first build
+shipped with the connecting-rod I-beam lying flat on the floor along
++Y at z = 0, completely disconnected from the engine. The big-end and
+small-end cylinders sat at their proper positions but the shaft
+between them was anchored at world origin. Two compounding bugs:
+`atan2(dy, dz)` instead of `atan2(dz, dy)` (so the rotation pointed
+the shaft nearly horizontal instead of nearly vertical) *plus* a
+missing translate (so the rotated shaft started at world origin
+instead of the big-end). Invisible in `iso` and `slice_y`; obvious
+in `front` and `highlight conrod`. **Lesson:** more than two angles.
 
-A *third* round of fixes followed after publication: the crankshaft's main
-journal axis was rotated 90° from what the conrod kinematics expected (pin
-orbits in Y-Z, so journal must run along X — it ran along Y); the piston's
-crown was computed below the wrist instead of above (so the conrod's
-small-end visibly stuck up through the piston top); the conrod's bearing
-cylinders were perpendicular to the pins they were supposed to wrap; and
-the crankshaft had no webs, leaving the pin floating with no visible
-connection to the journal. Each of these bugs was *invisible* until the
-previous bug was fixed — the floating-conrod fix had to land before the
-crank-axis mismatch could even be seen. Multi-angle inspection catches
-one round; multi-*pass* inspection (look again after every fix, from every
-angle, against a real-world reference) catches the rest.
+**Round 2 — crankshaft journal axis (commit `3566985`).** Once the
+conrod was vertical and visibly connected, a second mismatch became
+visible: the conrod's kinematic model put the crank pin orbiting in
+the Y-Z plane, but `crankshaft.js` had the main journal running along
+the *Y* axis. The journal axis must be *perpendicular* to the pin's
+orbit plane, so it should have been along X. The mismatch made the
+crankshaft look like a long horizontal bar protruding from the side
+of the engine instead of a stub-end emerging through the cutaway.
+Fixed by rotating the journal+pin cylinders 90° (around Y instead of
+X) and shrinking the oversized counterweight. **Lesson:** when one
+part is moving, *all* the parts that touch it can be wrong in ways
+the rendering can't display until the first part stops moving.
+
+**Round 3 — piston/conrod/web alignment (commit `440b59d`).** With
+the crank journal pointing the right way, three more bugs surfaced at
+once:
+
+- The piston's crown was computed *below* the wrist instead of above
+  (the formula `crownZ = tdcCrownZ − ((r+L) − yp)` meant TDC_CROWN −
+  L ≈ −28 mm — wrist sat 28 mm above crown). The conrod's small-end
+  visibly stuck up out of the piston's top face.
+- The conrod's bearing cylinders (big-end at the crank pin, small-end
+  at the wrist pin) defaulted to the Z axis, but the pins they were
+  supposed to wrap ran along X. The bearings *crossed* the pins at a
+  single line instead of being concentric, reading as disconnected.
+- The crankshaft had no *webs* — the crank pin floated next to the
+  journal with no visible physical connection.
+
+Fix: `crownZ = wristZ + COMPRESSION_HEIGHT`, both bearings rotated to
+lie along X, and stadium-shaped webs (hull of journal-disk + pin-disk)
+added on either side of the pin. The block also had to grow —
+`blockHeight = p.conrodLength + 40` instead of `p.stroke + 60` — so
+the bore extended past `wrist_TDC = L`. **Lesson:** a real-world
+reference (the user's `Crankshaft.STL` showing real crank webs) catches
+geometry mistakes that "looks plausible" can't.
+
+**Round 4 — the journal needs a gap at the throw (commit `8a55581`).**
+Even with proper webs, the crank still had a single continuous main
+journal cylinder running through where the webs sit. Geometrically the
+journal passed *through* the offset webs — something no real
+crankshaft can do (the webs couldn't rotate around the journal). A
+real crank has a *gap* in the main journal at every throw, with the
+journal-web-pin-web-journal chain bridging it. Fixed by splitting
+`mainJournal` into `leftJournal` + `rightJournal`, each
+`JOURNAL_STUB` long, with the throw assembly filling the gap between
+them. **Lesson:** "looks right from every angle" is a necessary but
+not sufficient condition. *Could this part physically rotate?* —
+rendered against a real reference — catches what static views miss.
+
+The same principle, four times: a render is one hypothesis. Each
+fix unblocks the next one. Multi-angle inspection catches round 1.
+Re-inspection-after-every-fix catches round 2. A real-world reference
+catches round 3. Asking *would this assembly work in the real world?*
+catches round 4. The full sequence is the perception loop at its most
+honest: each iteration teaches you what you were unable to see in the
+previous one.
 
 **Try it.**
 
