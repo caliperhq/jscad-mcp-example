@@ -16,6 +16,7 @@ const { cuboid, cylinder, polygon } = primitives
 const { union, subtract } = booleans
 const { translate, rotate } = transforms
 const { extrudeLinear } = extrusions
+const { cycloidProfile } = require('./lib/cycloid')
 
 const DEFAULTS = {
   pinCount: 12,
@@ -36,9 +37,42 @@ const getParameterDefinitions = () => [
 // --- placeholders, filled in by later tasks ---
 const buildAll = (params) => {
   const p = { ...DEFAULTS, ...params }
-  // TODO Task 1.3: cycloid_disc
+
+  const pinCircleRadius = p.discDiameter / 2 - p.pinRadius * 1.5
+  const discProfile = cycloidProfile({
+    pinCount: p.pinCount,
+    pinCircleRadius,
+    eccentricity: p.eccentricity,
+    pinRadius: p.pinRadius,
+    samples: 360
+  })
+  const discFlat = polygon({ points: discProfile })
+  const discSolid = extrudeLinear({ height: p.discThickness }, discFlat)
+
+  // Output-pin holes: circle of N-1 holes near the center, oversized for eccentric motion
+  const outputHoleRadius = p.pinRadius * 1.6
+  const outputHoleCircleRadius = p.discDiameter * 0.18
+  const outputHoles = []
+  for (let i = 0; i < p.pinCount - 1; i++) {
+    const a = (i / (p.pinCount - 1)) * 2 * Math.PI
+    outputHoles.push(translate(
+      [Math.cos(a) * outputHoleCircleRadius, Math.sin(a) * outputHoleCircleRadius, -1],
+      cylinder({ radius: outputHoleRadius, height: p.discThickness + 2, segments: 48 })
+    ))
+  }
+
+  // Center bore for the eccentric
+  const centerBore = cylinder({
+    radius: p.discDiameter * 0.08, height: p.discThickness + 2, segments: 64
+  })
+
+  const cycloid_disc = translate(
+    [p.eccentricity, 0, 0],
+    subtract(discSolid, union(...outputHoles, centerBore))
+  )
+
   // TODO Task 1.4: pin_housing, eccentric_input, output_pins
-  return { eccentric_input: [], cycloid_disc: [], pin_housing: [], output_pins: [] }
+  return { eccentric_input: [], cycloid_disc: [cycloid_disc], pin_housing: [], output_pins: [] }
 }
 
 const _defaultParts = buildAll({})
