@@ -74,8 +74,55 @@ const buildAll = (params) => {
     subtract(discSolid, union(...outputHoles, centerBore))
   )
 
-  // TODO Task 1.4: pin_housing, eccentric_input, output_pins
-  return { eccentric_input: [], cycloid_disc: [cycloid_disc], pin_housing: [], output_pins: [] }
+  // --- Pin housing: annular ring + arrayed cylindrical pins ---
+  const housingOuterR = p.discDiameter / 2 + p.pinRadius * 4
+  const housingHeight = p.discThickness + 4
+  const housingRing = subtract(
+    cylinder({ radius: housingOuterR, height: housingHeight, segments: 96 }),
+    cylinder({ radius: pinCircleRadius + p.pinRadius * 1.1, height: housingHeight + 2, segments: 96 })
+  )
+  const housingPins = []
+  for (let i = 0; i < p.pinCount; i++) {
+    const a = (i / p.pinCount) * 2 * Math.PI
+    housingPins.push(translate(
+      [Math.cos(a) * pinCircleRadius, Math.sin(a) * pinCircleRadius, 0],
+      cylinder({ radius: p.pinRadius, height: housingHeight, segments: 32 })
+    ))
+  }
+  const pin_housing = translate([0, 0, -2], union(housingRing, ...housingPins))
+
+  // --- Eccentric input: central shaft + offset bearing cylinder ---
+  const shaft = cylinder({
+    radius: p.discDiameter * 0.05, height: housingHeight + 20, segments: 48
+  })
+  const bearing = translate(
+    [p.eccentricity, 0, 0],
+    cylinder({ radius: p.discDiameter * 0.075, height: p.discThickness, segments: 48 })
+  )
+  const eccentric_input = translate([0, 0, -8], union(shaft, bearing))
+
+  // --- Output pins: protrude up through disc holes ---
+  const outputPinsArr = []
+  const outputPinR = p.pinRadius * 0.8
+  for (let i = 0; i < p.pinCount - 1; i++) {
+    const a = (i / (p.pinCount - 1)) * 2 * Math.PI
+    outputPinsArr.push(translate(
+      [Math.cos(a) * outputHoleCircleRadius, Math.sin(a) * outputHoleCircleRadius, p.discThickness],
+      cylinder({ radius: outputPinR, height: 6, segments: 32 })
+    ))
+  }
+  const outputPlate = translate(
+    [0, 0, p.discThickness + 5.5],
+    cylinder({ radius: p.discDiameter * 0.3, height: 1, segments: 64 })
+  )
+  const output_pins = [...outputPinsArr, outputPlate]
+
+  return {
+    eccentric_input: [eccentric_input],
+    cycloid_disc:    [cycloid_disc],
+    pin_housing:     [pin_housing],
+    output_pins:     output_pins
+  }
 }
 
 const _defaultParts = buildAll({})
