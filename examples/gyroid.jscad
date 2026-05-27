@@ -24,28 +24,35 @@ const { marchingCubes } = require('./lib/marching-cubes')
 
 const DEFAULTS = {
   cellSize: 10,
-  wallThickness: 1.2,
+  wallThreshold: 0.6,
   cubeSize: 40,
-  resolution: 32
+  resolution: 48
 }
 
 const getParameterDefinitions = () => [
   { name: 'cellSize',      type: 'number', initial: 10,  min: 4,  max: 25, step: 1,    caption: 'Cell size (mm)' },
-  { name: 'wallThickness', type: 'number', initial: 1.2, min: 0.4, max: 3, step: 0.1,  caption: 'Wall thickness (mm)' },
+  { name: 'wallThreshold', type: 'number', initial: 0.6, min: 0.2, max: 1.4, step: 0.05, caption: 'Wall threshold (|f|<t becomes solid)' },
   { name: 'cubeSize',      type: 'number', initial: 40,  min: 20, max: 80, step: 5,    caption: 'Outer cube size (mm)' },
-  { name: 'resolution',    type: 'int',    initial: 32,  min: 16, max: 64, step: 8,    caption: 'MC grid resolution per axis' }
+  { name: 'resolution',    type: 'int',    initial: 48,  min: 24, max: 64, step: 8,    caption: 'MC grid resolution per axis' }
 ]
 
 const buildAll = (params) => {
   const p = { ...DEFAULTS, ...params }
   const half = p.cubeSize / 2
 
-  // Field for the THICKENED gyroid: |f(x,y,z)| - t/cellSize < 0
-  const t = p.wallThickness / p.cellSize
-  const field = (x, y, z) => Math.abs(gyroidField(x, y, z, p.cellSize)) - t
+  // Thickened gyroid: solid where |f(x,y,z)| < wallThreshold.
+  // The naive iso-function |f|-t has a kink at f=0 that breaks marching cubes
+  // (produces non-manifold triangles). We use f^2 - t^2: same iso-surface |f|=t,
+  // but smooth across the surface, so MC's linear edge interpolation produces a
+  // coherent watertight mesh.
+  const t = p.wallThreshold
+  const field = (x, y, z) => {
+    const g = gyroidField(x, y, z, p.cellSize)
+    return g * g - t * t
+  }
 
   // March a slightly oversized box so we can intersect cleanly.
-  const pad = 1
+  const pad = 2
   const bbox = [[-half - pad, -half - pad, -half - pad],
                 [ half + pad,  half + pad,  half + pad]]
   const { positions, indices } = marchingCubes({
