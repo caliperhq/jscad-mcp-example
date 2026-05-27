@@ -36,10 +36,10 @@ Each demo is chosen because **it would be painful to design without the visual f
 | [![heatsink](examples/screenshots/heatsink/iso.png)](EXAMPLES.md#heatsink-fin-array) | [![water_tower](examples/screenshots/water_tower/iso.png)](EXAMPLES.md#ho-scale-water-tower) |
 | Parametric base + N parallel fins. The slice exposes the inter-fin gap — push fin count too high and watch the gap collapse. | Trackside wooden tank on a braced timber frame, 1:87 scale. Low-segment cylinder = staves for free. |
 
-| HO Pratt truss bridge |
-|---|
-| [![truss_bridge](examples/screenshots/truss_bridge/iso.png)](EXAMPLES.md#ho-scale-pratt-truss-bridge) |
-| Through-truss railroad bridge with the Pratt diagonal rule (`\\\` on the left half, `///` on the right). Panels, span, and height all parameterize. |
+| HO Pratt truss bridge | Image → lithophane |
+|---|---|
+| [![truss_bridge](examples/screenshots/truss_bridge/iso.png)](EXAMPLES.md#ho-scale-pratt-truss-bridge) | [![lithophane](examples/screenshots/lithophane/hero.png)](EXAMPLES.md#image--lithophane) |
+| Through-truss railroad bridge with the Pratt diagonal rule (`\\\` on the left half, `///` on the right). Panels, span, and height all parameterize. | Photo → grayscale heightmap → 3D-printable translucent panel. Backlit, the print is the image. Swap in your own photo with one script. |
 
 Full walkthroughs, iteration GIFs, parameter docs, and openjscad.xyz "Try in browser" links: **[EXAMPLES.md](EXAMPLES.md)**.
 
@@ -77,6 +77,7 @@ examples/                    single-file demos (one .jscad each, math in lib/)
   heatsink.jscad             parametric fin array
   water_tower.jscad          HO-scale wooden water tower
   truss_bridge.jscad         HO-scale Pratt through-truss railroad bridge
+  lithophane.jscad           image → 3D heightmap panel (needs lib/litho_heightmap.js)
   *_bundled.jscad            generated single-file bundles for openjscad.xyz
   lib/                       shared math (cycloid, gyroid, marching cubes, vase profile,
                                voronoi, thread, gear, loft helpers)

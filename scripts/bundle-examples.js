@@ -18,7 +18,8 @@ const TARGETS = [
   { entry: 'caliper.jscad',         out: 'caliper_bundled.jscad' },
   { entry: 'heatsink.jscad',        out: 'heatsink_bundled.jscad' },
   { entry: 'water_tower.jscad',     out: 'water_tower_bundled.jscad' },
-  { entry: 'truss_bridge.jscad',    out: 'truss_bridge_bundled.jscad' }
+  { entry: 'truss_bridge.jscad',    out: 'truss_bridge_bundled.jscad' },
+  { entry: 'lithophane.jscad',      out: 'lithophane_bundled.jscad' }
 ]
 
 const RELATIVE_REQUIRE = /const\s+\{([^}]*)\}\s*=\s*require\(['"](\.\/[^'"]+)['"]\)\s*;?\s*\n/g

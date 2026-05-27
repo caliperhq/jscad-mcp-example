@@ -17,7 +17,8 @@ screenshots from the iteration loop, and how to try it locally or in your browse
 10. [Heatsink fin array](#heatsink-fin-array) — parametric array + slice between fins
 11. [HO-scale water tower](#ho-scale-water-tower) — facet-as-stave + bracing tessellation
 12. [HO-scale Pratt truss bridge](#ho-scale-pratt-truss-bridge) — Pratt diagonal rule + portal bracing
-13. [GPU waterblock](#gpu-waterblock) — real engineering reference
+13. [Image → lithophane](#image--lithophane) — novel input: a photo becomes a 3D heightmap panel
+14. [GPU waterblock](#gpu-waterblock) — real engineering reference
 
 ---
 
@@ -726,6 +727,80 @@ In your browser:
 - `deckWidth` (mm) — inside-truss gauge
 - `memberThickness`, `chordThickness` (mm) — frame member dimensions
 - `tieCount` — number of ties on the deck
+
+---
+
+## Image → lithophane
+
+**What it is.** A lithophane is a thin translucent panel whose local
+wall thickness encodes an image: dark pixels become thick walls (block
+more light), bright pixels become thin walls (let more light through).
+When you backlight the printed panel — a window, a desk lamp, an
+LED panel — the image reappears as a tonal play of light. The example
+ships with a van-Gogh-style portrait baked in; a one-line script swaps
+in your own.
+
+**Why it's interesting for jscad-mcp.** This is the first example in
+the repo where the *input* is not code: it's an image. Claude reads
+the photo natively, the preprocessor downsamples it to a grayscale
+heightmap, and the `.jscad` file builds one polyhedron with one vertex
+per grid corner — top z varies with brightness, bottom is flat, four
+side walls close the volume. Roughly 18,000 grid samples turn into
+~70,000 triangles in a single primitive.
+
+It's also a perception-loop subtlety: a real-thickness lithophane
+(0.6 – 3 mm range over a 120 mm panel) renders as a nearly featureless
+white card under diffuse lighting, because that's the whole point —
+the image is meant to be read by *transmitted* light, not surface
+shading. To make the encoded portrait actually *visible* in a renderer
+that can't backlight, the hero shot temporarily multiplies the relief
+~5×; the slice and grazing-angle profile show the real geometry.
+
+**Screenshots.**
+
+| Hero (relief 5× exaggerated for visualization) | Real-thickness profile (grazing angle) |
+|---|---|
+| ![hero](examples/screenshots/lithophane/hero.png) | ![profile](examples/screenshots/lithophane/profile.png) |
+
+The hero shot is rendered with `maxThickness: 15` so the diffuse
+shading reveals the image; the actual printable defaults (`maxThickness:
+3`) produce the thin slab with subtle top relief shown on the right.
+
+**Try it with your own image.**
+
+```bash
+# downsample to 120 px wide (height auto-scales)
+node scripts/build-lithophane-data.js path/to/photo.jpg 120
+```
+
+This overwrites `examples/lib/litho_heightmap.js` with the heightmap
+for your image. The .jscad file runs sandboxed at render time (no fs
+access), so the heightmap data has to be embedded as a committed JS
+module — the script handles that. Then re-render `lithophane.jscad`
+locally, or re-bundle for the browser link:
+
+```bash
+node scripts/bundle-examples.js
+```
+
+In your browser (with the demo image):
+[Open in openjscad.xyz](https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/lithophane_bundled.jscad)
+
+**Parameters.**
+
+- `pixelSize` (mm) — physical size per source pixel. At 120 px wide and
+  1 mm/px the panel is 120 mm wide; raise this to enlarge.
+- `minThickness` (mm) — wall thickness at the brightest pixels. Below
+  ~2 perimeters on a 0.4 mm nozzle (≈0.6 mm) the panel won't print
+  reliably.
+- `maxThickness` (mm) — wall thickness at the darkest pixels. Real
+  lithophanes top out around 3 mm; thicker means more contrast but
+  more material and longer prints.
+
+**Print tips.** Print flat with the textured face *up* in PLA (white,
+or any light color). 0.1 mm layer height. No supports. Backlight from
+behind a window or with a USB LED panel; the image will read clearly
+even though the rendered preview looks nearly blank.
 
 ---
 
