@@ -230,8 +230,6 @@ detours along the way:
 - Installing `media-libs/exiftool` for the EXIF scrub step.
 - Deleting and recreating the GitHub repo twice to clean up a leaked email
   address that exposed a real name in `git log` history.
-- Rewriting `scrub-check.sh` from a denylist that itself contained the
-  forbidden name to an allowlist that carries no personal identifiers.
 - A geometry bug in the cycloidal disc (output-pin holes overlapping into a
   flower void) and a marching-cubes failure on the gyroid (the `|f|-t`
   kink at f=0 producing non-manifold triangles). Both fixes are visible in
