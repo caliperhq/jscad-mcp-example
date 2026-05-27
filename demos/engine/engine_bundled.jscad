@@ -165,15 +165,21 @@ const buildConrod = (p) => {
   const dy = wristY - crankPinY
   const dz = wristZ - crankPinZ
   const len = Math.hypot(dy, dz)
-  const angleDeg = (Math.atan2(dy, dz) * 180) / Math.PI
+  // Angle to rotate the polygon (built along +y) about X so its local +y
+  // points from big-end toward wrist. atan2(dz, dy), not atan2(dy, dz).
+  const angleDeg = (Math.atan2(dz, dy) * 180) / Math.PI
 
   const iBeam = polygon({ points: [
     [-3, 0], [-3, 6], [-1, 6], [-1, len - 6], [-3, len - 6], [-3, len],
     [ 3, len], [ 3, len - 6], [ 1, len - 6], [ 1, 6], [ 3, 6], [ 3, 0]
   ] })
   const shaft = extrudeLinear({ height: 6 }, iBeam)
-  const positioned = translate([-3, 0, 0],
-    rotate([angleDeg * Math.PI / 180, 0, 0], shaft))
+  // Anchor the rotated I-beam at the big-end (crank pin). Without the y/z
+  // translate it sits at world origin and the shaft floats off the engine.
+  const positioned = translate(
+    [-3, crankPinY, crankPinZ],
+    rotate([angleDeg * Math.PI / 180, 0, 0], shaft)
+  )
 
   const bigEnd = translate([0, crankPinY, crankPinZ],
     cylinder({ radius: 8, height: 8, segments: 48 }))
