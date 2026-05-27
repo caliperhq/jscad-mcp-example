@@ -6,6 +6,7 @@ docs/superpowers/
 .scrub-patterns.local
 examples/screenshots/*/.iteration-frames/
 demos/*/screenshots/.iteration-frames/
+demos/*/screenshots/.crank-frames/
 *.log
 .DS_Store
 .env
