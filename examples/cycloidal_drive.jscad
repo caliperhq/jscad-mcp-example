@@ -10,6 +10,9 @@
 //   highlight cycloid_disc -> lobed profile pops out of the assembly
 //   label_parts           -> annotated diagram
 //   slice z=mid           -> eccentricity visible
+//
+// Try in browser:
+//   https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/cycloidal_drive.jscad
 
 const { primitives, booleans, transforms, extrusions } = require('@jscad/modeling')
 const { cuboid, cylinder, polygon } = primitives
