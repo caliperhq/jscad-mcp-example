@@ -13,6 +13,9 @@
 // Try in browser (bundled single-file):
 //   https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/demos/engine/engine_bundled.jscad
 
+const { colors } = require('@jscad/modeling')
+const { colorize } = colors
+
 const { buildBlock }      = require('./block')
 const { buildHead }       = require('./head')
 const { buildPiston }     = require('./piston')
@@ -20,6 +23,22 @@ const { buildConrod }     = require('./conrod')
 const { buildCrankshaft } = require('./crankshaft')
 const { buildIntakeValve, buildExhaustValve, buildSparkPlug } = require('./valves')
 const { buildIntakePort,  buildExhaustPort }                   = require('./ports')
+
+// Per-part RGBA colors. Picked for cutaway clarity: cool grays for the
+// fixed structure, warm metals for moving parts, hot/cool tints for the
+// flow paths.
+const PART_COLORS = {
+  block:         [0.55, 0.58, 0.62, 1],
+  head:          [0.45, 0.48, 0.52, 1],
+  piston:        [0.85, 0.55, 0.20, 1],
+  conrod:        [0.75, 0.45, 0.25, 1],
+  crankshaft:    [0.35, 0.38, 0.42, 1],
+  intake_valve:  [0.30, 0.55, 0.85, 1],
+  exhaust_valve: [0.85, 0.30, 0.20, 1],
+  spark_plug:    [0.95, 0.85, 0.30, 1],
+  intake_port:   [0.50, 0.75, 1.00, 0.55],
+  exhaust_port:  [1.00, 0.55, 0.45, 0.55]
+}
 
 const DEFAULTS = {
   bore: 80, stroke: 70, conrodLength: 130, compressionRatio: 10,
@@ -36,19 +55,21 @@ const getParameterDefinitions = () => [
   { name: 'exhaustValveOpen', type: 'number', initial: 0.0, min: 0,  max: 1,   step: 0.05, caption: 'Exhaust valve open (0=closed)' }
 ]
 
+const colorPart = (name, geom) => geom ? colorize(PART_COLORS[name], geom) : null
+
 const buildAll = (params) => {
   const p = { ...DEFAULTS, ...params }
   return {
-    block:         [buildBlock(p)].filter(Boolean),
-    head:          [buildHead(p)].filter(Boolean),
-    piston:        [buildPiston(p)].filter(Boolean),
-    conrod:        [buildConrod(p)].filter(Boolean),
-    crankshaft:    [buildCrankshaft(p)].filter(Boolean),
-    intake_valve:  [buildIntakeValve(p)].filter(Boolean),
-    exhaust_valve: [buildExhaustValve(p)].filter(Boolean),
-    spark_plug:    [buildSparkPlug(p)].filter(Boolean),
-    intake_port:   [buildIntakePort(p)].filter(Boolean),
-    exhaust_port:  [buildExhaustPort(p)].filter(Boolean)
+    block:         [colorPart('block',         buildBlock(p))].filter(Boolean),
+    head:          [colorPart('head',          buildHead(p))].filter(Boolean),
+    piston:        [colorPart('piston',        buildPiston(p))].filter(Boolean),
+    conrod:        [colorPart('conrod',        buildConrod(p))].filter(Boolean),
+    crankshaft:    [colorPart('crankshaft',    buildCrankshaft(p))].filter(Boolean),
+    intake_valve:  [colorPart('intake_valve',  buildIntakeValve(p))].filter(Boolean),
+    exhaust_valve: [colorPart('exhaust_valve', buildExhaustValve(p))].filter(Boolean),
+    spark_plug:    [colorPart('spark_plug',    buildSparkPlug(p))].filter(Boolean),
+    intake_port:   [colorPart('intake_port',   buildIntakePort(p))].filter(Boolean),
+    exhaust_port:  [colorPart('exhaust_port',  buildExhaustPort(p))].filter(Boolean)
   }
 }
 
