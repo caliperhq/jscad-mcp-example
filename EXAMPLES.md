@@ -207,6 +207,18 @@ During the brainstorming phase, the assistant (Claude) sized each demo:
 
 Roughly nine hours of estimated work.
 
+The actual durations, measured from the first to last commit per demo on
+this branch's git log:
+
+| Demo | Estimated | Actual | Notes |
+|------|-----------|--------|-------|
+| Cycloidal drive | ~4 hr | **49 min** | Includes the overlapping-holes geometry fix |
+| Engine cutaway | ~4 hr | **24 min** | Includes per-part colors and 12-frame crank sweep |
+| Gyroid lattice | ~1 hr | **15 min** | Includes the marching-cubes \|f\| → f² iso-function fix |
+| **Total demos** | **~9 hr** | **~88 min** | ≈ 6× under estimate |
+
+(Reproduce: `git log --reverse --pretty=format:"%ai %s" | grep -E "feat\(<demo>\)"`.)
+
 Everything in this repo — spec, plan, three demos with parameter UIs, unit
 tests for the cycloid + marching-cubes math, a single-file bundler for the
 engine, screenshots, the engine crank-sweep GIF, two iteration GIFs,
