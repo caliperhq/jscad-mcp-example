@@ -31,10 +31,15 @@ Each demo is chosen because **it would be painful to design without the visual f
 | [![snap](examples/screenshots/snap_box/exploded.png)](EXAMPLES.md#snap-fit-parametric-box) | ![caliper](examples/screenshots/caliper/jaw_sweep.gif) |
 | Tolerance-driven snap features: wedges on the box wall, dimples in the lid skirt. Lift the lid to see the catch. | Stylized vernier caliper with `jawExtension` swept 5 → 110 mm over 36 frames at 12 fps. |
 
-| Heatsink fin array |
+| Heatsink fin array | HO water tower |
+|---|---|
+| [![heatsink](examples/screenshots/heatsink/iso.png)](EXAMPLES.md#heatsink-fin-array) | [![water_tower](examples/screenshots/water_tower/iso.png)](EXAMPLES.md#ho-scale-water-tower) |
+| Parametric base + N parallel fins. The slice exposes the inter-fin gap — push fin count too high and watch the gap collapse. | Trackside wooden tank on a braced timber frame, 1:87 scale. Low-segment cylinder = staves for free. |
+
+| HO Pratt truss bridge |
 |---|
-| [![heatsink](examples/screenshots/heatsink/iso.png)](EXAMPLES.md#heatsink-fin-array) |
-| Parametric base + N parallel fins. The slice exposes the inter-fin gap — push fin count too high and watch the gap collapse. |
+| [![truss_bridge](examples/screenshots/truss_bridge/iso.png)](EXAMPLES.md#ho-scale-pratt-truss-bridge) |
+| Through-truss railroad bridge with the Pratt diagonal rule (`\\\` on the left half, `///` on the right). Panels, span, and height all parameterize. |
 
 Full walkthroughs, iteration GIFs, parameter docs, and openjscad.xyz "Try in browser" links: **[EXAMPLES.md](EXAMPLES.md)**.
 
@@ -70,6 +75,8 @@ examples/                    single-file demos (one .jscad each, math in lib/)
   snap_box.jscad             tolerance-driven snap fit
   caliper.jscad              animated mechanism
   heatsink.jscad             parametric fin array
+  water_tower.jscad          HO-scale wooden water tower
+  truss_bridge.jscad         HO-scale Pratt through-truss railroad bridge
   *_bundled.jscad            generated single-file bundles for openjscad.xyz
   lib/                       shared math (cycloid, gyroid, marching cubes, vase profile,
                                voronoi, thread, gear, loft helpers)

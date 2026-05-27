@@ -1,0 +1,196 @@
+'use strict'
+
+// jscad-mcp demo: HO-scale wooden water tower
+// -------------------------------------------
+// Classic trackside wooden water tank on a braced timber frame —
+// the kind that sits next to a steam-era depot. Dimensions are 1:87
+// (HO scale) so the model prints at roughly the same size as the
+// plastic kits visible in the reference photos that inspired this
+// example (Helmuth's model train house, photographed by Talking Walls
+// Photo): https://www.talkingwallsphoto.com/houses/helmuths-model-train-house
+//   - 16 ft tank → ~56 mm diameter
+//   - 30 ft to tank floor → ~105 mm
+//
+// The tank is a low-segment cylinder so its facets read as wooden
+// staves without any extra geometry; iron hoops are tori; the timber
+// frame is N vertical legs joined by ring beams and X-braces per
+// panel. Bumping `legCount` regenerates the whole frame in place.
+//
+// Try in browser:
+//   https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/water_tower_bundled.jscad
+
+const { primitives, booleans, transforms, colors } = require('@jscad/modeling')
+const { cylinder, cylinderElliptic, cuboid, torus } = primitives
+const { union } = booleans
+const { translate, rotate } = transforms
+const { colorize } = colors
+
+const DEFAULTS = {
+  tankDiameter: 50,    // mm — 1:87 of ~14.5 ft, typical small tower
+  tankHeight:   48,
+  roofHeight:   12,
+  staveCount:   16,    // facets = wooden staves
+  legCount:     4,
+  legHeight:    60,    // bottom of tank
+  legThickness: 4,
+  braceLevels:  2,     // horizontal ring beams between ground and tank
+  spoutLength:  18
+}
+
+const getParameterDefinitions = () => [
+  { name: 'tankDiameter', type: 'number', initial: 50, min: 25, max: 90, step: 1,   caption: 'Tank diameter (mm)' },
+  { name: 'tankHeight',   type: 'number', initial: 48, min: 20, max: 80, step: 1,   caption: 'Tank height (mm)' },
+  { name: 'roofHeight',   type: 'number', initial: 12, min: 4,  max: 30, step: 1,   caption: 'Roof cone height (mm)' },
+  { name: 'staveCount',   type: 'int',    initial: 16, min: 8,  max: 48, step: 1,   caption: 'Stave (facet) count' },
+  { name: 'legCount',     type: 'int',    initial: 4,  min: 3,  max: 8,  step: 1,   caption: 'Leg count' },
+  { name: 'legHeight',    type: 'number', initial: 60, min: 25, max: 120,step: 1,   caption: 'Frame height to tank (mm)' },
+  { name: 'legThickness', type: 'number', initial: 4,  min: 2,  max: 8,  step: 0.5, caption: 'Leg thickness (mm)' },
+  { name: 'braceLevels',  type: 'int',    initial: 2,  min: 1,  max: 4,  step: 1,   caption: 'Horizontal ring beams' },
+  { name: 'spoutLength',  type: 'number', initial: 18, min: 0,  max: 40, step: 1,   caption: 'Downspout length (mm)' }
+]
+
+const PART_COLORS = {
+  tank:   [0.55, 0.38, 0.22, 1],  // weathered redwood
+  roof:   [0.32, 0.20, 0.14, 1],  // dark shingle
+  hoops:  [0.18, 0.18, 0.20, 1],  // black iron bands
+  frame:  [0.46, 0.32, 0.20, 1],  // timber
+  spout:  [0.25, 0.25, 0.27, 1]   // galvanized pipe
+}
+
+const legPositions = (p) => {
+  const r = p.tankDiameter / 2 - p.legThickness / 2 - 0.5
+  const out = []
+  for (let i = 0; i < p.legCount; i++) {
+    const a = (i / p.legCount) * Math.PI * 2 + Math.PI / p.legCount
+    out.push({ x: r * Math.cos(a), y: r * Math.sin(a), a })
+  }
+  return out
+}
+
+const buildTank = (p) => {
+  const r  = p.tankDiameter / 2
+  const z0 = p.legHeight
+  return cylinder({
+    radius:   r,
+    height:   p.tankHeight,
+    center:   [0, 0, z0 + p.tankHeight / 2],
+    segments: p.staveCount
+  })
+}
+
+const buildHoops = (p) => {
+  const r  = p.tankDiameter / 2 + 0.4
+  const z0 = p.legHeight
+  const zs = [z0 + 3, z0 + p.tankHeight / 2, z0 + p.tankHeight - 3]
+  return union(zs.map((z) =>
+    translate([0, 0, z],
+      torus({ innerRadius: 0.6, outerRadius: r + 0.6, innerSegments: 8, outerSegments: Math.max(32, p.staveCount * 2) })
+    )
+  ))
+}
+
+const buildRoof = (p) => {
+  const r  = p.tankDiameter / 2 + 1.5  // slight overhang
+  const z0 = p.legHeight + p.tankHeight
+  return cylinderElliptic({
+    startRadius: [r, r],
+    endRadius:   [0.6, 0.6],
+    height:      p.roofHeight,
+    center:      [0, 0, z0 + p.roofHeight / 2],
+    segments:    Math.max(24, p.staveCount * 2)
+  })
+}
+
+const buildFrame = (p) => {
+  const legs = legPositions(p)
+  const parts = []
+  for (const { x, y } of legs) {
+    parts.push(cuboid({
+      size:   [p.legThickness, p.legThickness, p.legHeight],
+      center: [x, y, p.legHeight / 2]
+    }))
+  }
+  // Horizontal ring beams + X-braces between adjacent legs at each panel.
+  const allZ = [0]
+  for (let k = 1; k <= p.braceLevels; k++) {
+    allZ.push((p.legHeight) * (k / (p.braceLevels + 1)))
+  }
+  allZ.push(p.legHeight)
+  // ring beams sit at the inner brace levels (not floor, not tank floor)
+  const beamZs = allZ.slice(1, -1)
+  for (const z of beamZs) {
+    for (let i = 0; i < legs.length; i++) {
+      const a = legs[i], b = legs[(i + 1) % legs.length]
+      const dx = b.x - a.x, dy = b.y - a.y
+      const len = Math.hypot(dx, dy)
+      const ang = Math.atan2(dy, dx)
+      parts.push(translate([(a.x + b.x) / 2, (a.y + b.y) / 2, z],
+        rotate([0, 0, ang], cuboid({ size: [len, 1.6, 2] }))
+      ))
+    }
+  }
+  // X-braces in each vertical panel between consecutive Z levels.
+  for (let li = 0; li < allZ.length - 1; li++) {
+    const zlo = allZ[li], zhi = allZ[li + 1]
+    const panelH = zhi - zlo
+    for (let i = 0; i < legs.length; i++) {
+      const a = legs[i], b = legs[(i + 1) % legs.length]
+      const dx = b.x - a.x, dy = b.y - a.y
+      const span = Math.hypot(dx, dy)
+      const ang  = Math.atan2(dy, dx)
+      const diag = Math.hypot(span, panelH)
+      const tilt = Math.atan2(panelH, span)
+      const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2, cz = (zlo + zhi) / 2
+      const brace = (sign) => translate([cx, cy, cz],
+        rotate([0, 0, ang],
+          rotate([0, sign * tilt, 0], cuboid({ size: [diag, 1.0, 1.0] }))
+        )
+      )
+      parts.push(brace(+1), brace(-1))
+    }
+  }
+  return union(...parts)
+}
+
+const buildSpout = (p) => {
+  if (p.spoutLength <= 0) return null
+  const r       = p.tankDiameter / 2
+  const tankBot = p.legHeight
+  const pipeR   = 1.6
+  // vertical pipe hanging off the +X side of the tank
+  const top = tankBot + 2
+  const bot = Math.max(2, tankBot - p.spoutLength)
+  const vertical = cylinder({
+    radius:   pipeR,
+    height:   top - bot,
+    center:   [r + pipeR + 0.6, 0, (top + bot) / 2],
+    segments: 16
+  })
+  // angled tip at the bottom
+  const tipLen = 5
+  const tip = translate([r + pipeR + 0.6, 0, bot],
+    rotate([0, -Math.PI / 3, 0],
+      cylinder({ radius: pipeR, height: tipLen, segments: 16, center: [0, 0, tipLen / 2] })
+    )
+  )
+  return union(vertical, tip)
+}
+
+const buildAll = (params) => {
+  const p = { ...DEFAULTS, ...params }
+  const out = {
+    tank:  [colorize(PART_COLORS.tank,  buildTank(p))],
+    hoops: [colorize(PART_COLORS.hoops, buildHoops(p))],
+    roof:  [colorize(PART_COLORS.roof,  buildRoof(p))],
+    frame: [colorize(PART_COLORS.frame, buildFrame(p))]
+  }
+  const spout = buildSpout(p)
+  if (spout) out.spout = [colorize(PART_COLORS.spout, spout)]
+  return out
+}
+
+const _defaultParts = buildAll({})
+
+const main = (params = {}) => Object.values(buildAll(params)).flat()
+
+module.exports = { main, parts: _defaultParts, getParameterDefinitions }

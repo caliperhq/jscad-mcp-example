@@ -15,7 +15,9 @@ screenshots from the iteration loop, and how to try it locally or in your browse
 8. [Snap-fit parametric box](#snap-fit-parametric-box) — tolerance-driven plastic-part design
 9. [Sliding caliper jaws](#sliding-caliper-jaws) — animated mechanism via parameter sweep
 10. [Heatsink fin array](#heatsink-fin-array) — parametric array + slice between fins
-11. [GPU waterblock](#gpu-waterblock) — real engineering reference
+11. [HO-scale water tower](#ho-scale-water-tower) — facet-as-stave + bracing tessellation
+12. [HO-scale Pratt truss bridge](#ho-scale-pratt-truss-bridge) — Pratt diagonal rule + portal bracing
+13. [GPU waterblock](#gpu-waterblock) — real engineering reference
 
 ---
 
@@ -613,6 +615,117 @@ In your browser:
 - `finCount` — number of parallel fins
 - `finHeight`, `finThickness` (mm) — fin geometry
 - `finMargin` (mm) — distance from base edge to the outermost fin
+
+---
+
+## HO-scale water tower
+
+**What it is.** A classic trackside wooden water tower, sized 1:87 (HO
+scale) so it could be 3D-printed and dropped onto a model railroad
+layout next to a steam-era depot. Five parts: cylindrical slatted tank,
+three iron hoops, conical shingle roof with an overhang, four-leg
+timber frame with horizontal ring beams and per-panel X-braces, and a
+downspout dangling off the tank's underside. Inspired by the layout in
+[Helmuth's model train house](https://www.talkingwallsphoto.com/houses/helmuths-model-train-house)
+(photographs by Talking Walls Photo).
+
+**Why it's interesting for jscad-mcp.** The tank exploits a `segments:`
+trick — the cylinder is built with a *low* segment count so its facets
+read as wooden staves without any extra geometry. Bumping `staveCount`
+from 8 to 48 smoothly trades stave look for smooth cylinder, and the
+hoop tori re-segment to match. The frame is genuinely parametric: change
+`legCount` from 4 to 6, or `braceLevels` from 2 to 3, and the ring
+beams + X-braces re-tile in place. Visual verification matters here
+because the brace rotation math has a sign convention that's easy to
+get backwards — a one-character flip turns the X-braces into parallel
+slashes and the model still "looks like a water tower" at iso, but the
+front view immediately exposes it.
+
+**Screenshots.**
+
+| Iso | Front (downspout side) |
+|---|---|
+| ![iso](examples/screenshots/water_tower/iso.png) | ![front](examples/screenshots/water_tower/front.png) |
+
+**Try it.**
+
+Locally:
+
+```
+take_image  file=examples/water_tower.jscad azimuth=35 elevation=15
+take_image  file=examples/water_tower.jscad azimuth=0  elevation=5
+```
+
+In your browser:
+[Open in openjscad.xyz](https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/water_tower_bundled.jscad)
+
+**Parameters.**
+
+- `tankDiameter`, `tankHeight` (mm) — tank size
+- `staveCount` — facet count on the tank (the "stave" knob)
+- `roofHeight` (mm) — cone height
+- `legCount` — frame leg count (3–8); the frame regenerates around the tank
+- `legHeight` (mm) — distance from ground to tank floor
+- `braceLevels` — number of horizontal ring beams (X-braces fill each resulting panel)
+- `spoutLength` (mm) — downspout length; set 0 to remove
+
+---
+
+## HO-scale Pratt truss bridge
+
+**What it is.** A through-truss railroad bridge in HO scale — train
+rides on a deck at the bottom chord, between two parallel truss walls.
+Six parts: trusses, transverse floor beams, plank deck, ties, rails,
+and portal X-bracing at the two entry portals. Default span is 200 mm
+(~58 scale feet); panel count, span, height, and member thickness all
+parameterize. Inspired by the layout in
+[Helmuth's model train house](https://www.talkingwallsphoto.com/houses/helmuths-model-train-house)
+(photographs by Talking Walls Photo).
+
+**Why it's interesting for jscad-mcp.** The Pratt diagonal rule —
+*top corner closer to bridge center, bottom corner closer to end* —
+is the kind of orientation invariant that's easy to get wrong by 90°
+or to mirror by accident, and the iso view alone won't catch it.
+Rendering the **front** view and counting `\\\` on the left half and
+`///` on the right half (meeting in a V at bottom-center) is the
+verification. Get the topX/botX swap wrong and you've built a Howe
+truss instead, with the V replaced by an inverted Λ — visually
+similar from a distance, structurally a different load path.
+
+This example is also the showcase for a parameter sweep: bump `panels`
+from 4 to 12 and the diagonals re-tile cleanly each time, while the
+deck, ties, and portals all rescale.
+
+**Screenshots.**
+
+| Iso | Front (Pratt diagonals) |
+|---|---|
+| ![iso](examples/screenshots/truss_bridge/iso.png) | ![front](examples/screenshots/truss_bridge/front.png) |
+
+The front view is the diagonal check: counting left-to-right the
+diagonals go `\\\` then `///`, meeting at the bottom-center post in
+the characteristic Pratt V.
+
+**Try it.**
+
+Locally:
+
+```
+take_image  file=examples/truss_bridge.jscad azimuth=0  elevation=2
+take_image  file=examples/truss_bridge.jscad azimuth=35 elevation=20
+```
+
+In your browser:
+[Open in openjscad.xyz](https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/truss_bridge_bundled.jscad)
+
+**Parameters.**
+
+- `span` (mm) — end-to-end length
+- `panels` — panel count (also the number of intermediate posts is `panels - 1`)
+- `trussHeight` (mm) — top chord to bottom chord
+- `deckWidth` (mm) — inside-truss gauge
+- `memberThickness`, `chordThickness` (mm) — frame member dimensions
+- `tieCount` — number of ties on the deck
 
 ---
 
