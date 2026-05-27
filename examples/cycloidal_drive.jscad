@@ -15,12 +15,24 @@
 // resolve relative requires like ./lib/cycloid against a GitHub raw URL):
 //   https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/cycloidal_drive_bundled.jscad
 
-const { primitives, booleans, transforms, extrusions } = require('@jscad/modeling')
+const { primitives, booleans, transforms, extrusions, colors } = require('@jscad/modeling')
 const { cuboid, cylinder, polygon } = primitives
 const { union, subtract } = booleans
 const { translate, rotate } = transforms
 const { extrudeLinear } = extrusions
+const { colorize } = colors
 const { cycloidProfile } = require('./lib/cycloid')
+
+// Per-part RGBA. Cool gray for the fixed housing, warm bronze for the
+// workpiece disc, yellow-gold for the drive input, cool steel-blue for
+// the output side. Each part is visually distinct so the assembly reads
+// at a glance without labels.
+const PART_COLORS = {
+  pin_housing:     [0.55, 0.58, 0.62, 1],
+  cycloid_disc:    [0.80, 0.55, 0.30, 1],
+  eccentric_input: [0.90, 0.78, 0.30, 1],
+  output_pins:     [0.35, 0.55, 0.75, 1]
+}
 
 const DEFAULTS = {
   pinCount: 12,
@@ -121,11 +133,12 @@ const buildAll = (params) => {
   )
   const output_pins = [...outputPinsArr, outputPlate]
 
+  const colorPart = (name, geoms) => geoms.map(g => colorize(PART_COLORS[name], g))
   return {
-    eccentric_input: [eccentric_input],
-    cycloid_disc:    [cycloid_disc],
-    pin_housing:     [pin_housing],
-    output_pins:     output_pins
+    eccentric_input: colorPart('eccentric_input', [eccentric_input]),
+    cycloid_disc:    colorPart('cycloid_disc',    [cycloid_disc]),
+    pin_housing:     colorPart('pin_housing',     [pin_housing]),
+    output_pins:     colorPart('output_pins',     output_pins)
   }
 }
 
