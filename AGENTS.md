@@ -39,16 +39,30 @@ A failing scrub-check blocks the push by design — fix the leak first.
 
 ```
 examples/                    single-file demos
-  cycloidal_drive.jscad
-  cycloidal_drive_bundled.jscad   generated single-file bundle for openjscad.xyz
-  gyroid.jscad
-  gyroid_bundled.jscad            generated single-file bundle for openjscad.xyz
+  cycloidal_drive.jscad      named parts + highlight
+  gyroid.jscad               marching-cubes TPMS
+  vase.jscad                 extrudeFromSlices lofting
+  voronoi_panel.jscad        2D Voronoi → extrude
+  thread.jscad               extrudeHelical bolt + nut
+  gear_pair.jscad            cosine-tooth meshing gears
+  snap_box.jscad             tolerance-driven snap fit
+  caliper.jscad              animated mechanism
+  heatsink.jscad             parametric fin array
+  water_tower.jscad          HO-scale wooden water tower
+  truss_bridge.jscad         HO-scale Pratt through-truss railroad bridge
+  lithophane.jscad           image → 3D heightmap panel (requires lib/litho_heightmap.js)
+  *_bundled.jscad            generated single-file bundles for openjscad.xyz
   lib/
     cycloid.js               cycloid profile generator (Hugo-Elias form)
     gyroid.js                gyroid scalar field
     marching-cubes.js        marching cubes algorithm
     marching-cubes-tables.js Paul Bourke's public-domain tables
-  screenshots/<demo>/        per-demo PNGs + iteration.gif
+    vase-profile.js          radius-control-point vase generator
+    voronoi.js               half-plane Voronoi cells
+    thread.js                helical thread profile
+    gear.js                  cosine-tooth gear geometry
+    litho_heightmap.js       AUTO-GENERATED grayscale heightmap (see build-lithophane-data.js)
+  screenshots/<demo>/        per-demo PNGs + GIFs
 demos/engine/                multi-file demo (cutaway 4-stroke engine)
   assembly.js                entry: main(), parts, getParameterDefinitions
   block.js, head.js, piston.js, conrod.js, crankshaft.js, valves.js, ports.js
@@ -57,6 +71,8 @@ demos/engine/                multi-file demo (cutaway 4-stroke engine)
 scripts/
   bundle-engine.js           regenerates engine_bundled.jscad
   bundle-examples.js         regenerates the examples/*_bundled.jscad files
+  build-lithophane-data.js   preprocesses an input image → lib/litho_heightmap.js
+                               via ImageMagick (PGM intermediate, zero npm deps)
   scrub-check.sh             pre-push verification
 tests/                       node:test unit tests for the math helpers
 docs/
@@ -84,11 +100,17 @@ module.exports = { main, parts: _defaultParts, getParameterDefinitions }
 
 The MCP calls `main({})` with no params; defaults must be baked into `buildAll`. `parts` is read as a *static* property at module load — that's why `_defaultParts` is precomputed once.
 
-### The require-cache trap (multi-file demos)
+### The require-cache trap (multi-file demos AND lib data files)
 
-When iterating on `demos/engine/`, the MCP server's Node process caches sub-module requires (`block.js`, `head.js`, etc.) across calls. The evaluator only busts the cache for the *entry* file. Edits to a sub-module won't show up in re-renders.
+Two flavors of the same trap. Both manifest as "I changed something and my re-render didn't pick it up." Both have the same fix.
 
-**Fix:** render via inline `code:` that busts the cache for every sub-module first:
+**Flavor A — multi-file demos** (`demos/engine/`): the MCP server's Node process caches sub-module requires (`block.js`, `head.js`, etc.) across calls. The evaluator only busts the cache for the *entry* file. Edits to a sub-module won't show up in re-renders.
+
+**Flavor B — generated lib data** (`examples/lib/litho_heightmap.js` and friends): a single-file `.jscad` whose lib is regenerated (e.g. you re-ran `build-lithophane-data.js` with a new input image) hits two cache layers simultaneously:
+1. The MCP's content-addressed PNG cache — the entry `.jscad` file didn't change, so its hash didn't change, so `take_image file=...` returns the previous render.
+2. The require cache — even on a PNG-cache miss, `require('./lib/litho_heightmap')` returns the lib loaded on the previous call.
+
+**Fix (both flavors):** render via inline `code:` that (a) busts the require cache for the entry + every lib/sub-module and (b) includes a literal marker that changes between calls (just paste a different timestamp comment) so the PNG cache misses too. Example for the engine:
 
 ```js
 'use strict'
@@ -101,7 +123,22 @@ const engine = require(ENGINE + '/assembly.js')
 module.exports = { main: engine.main, parts: engine.parts }
 ```
 
-This is documented in `skills/jscad-mcp/SKILL.md` in the tool repo. Don't waste time confused by stale renders; reach for the cache-bust.
+Example for lithophane after regenerating the heightmap:
+
+```js
+'use strict'
+const path = require('path')
+const DIR = '/home/mike/caliperhq/jscad-mcp-example/examples'
+// MARKER: 2026-05-27T14:48Z  — change this each call to defeat the PNG cache
+delete require.cache[path.join(DIR, 'lithophane.jscad')]
+delete require.cache[path.join(DIR, 'lib', 'litho_heightmap.js')]
+const mod = require(path.join(DIR, 'lithophane.jscad'))
+module.exports = { main: mod.main, parts: mod.parts }
+```
+
+Embedding the marker as a runtime value (e.g. `const m = fs.statSync(...).mtimeMs`) does *not* defeat the PNG cache — the cache hashes the source string, not what it evaluates to. The marker must be a literal in the source you pass to `code:`.
+
+Documented in detail in `skills/jscad-mcp/SKILL.md`. Don't waste time confused by stale renders; reach for the cache-bust.
 
 ### Per-part coloring
 
@@ -117,6 +154,32 @@ node scripts/bundle-examples.js   # -> examples/cycloidal_drive_bundled.jscad, e
 ```
 
 `tests/bundle-engine.test.js` and `tests/bundle-examples.test.js` verify the bundle structure and that the output evaluates with the right exports. CI does not currently run these (no GitHub Actions workflow); the human author runs them locally before pushing.
+
+**Lib module exports — bundler regex limitations.** `bundle-examples.js` matches lib exports with a regex roughly `module\.exports\s*=\s*\{([^}]*)\}` and matches consumer requires with `const\s+\{([^}]*)\}\s*=\s*require('\.\/[^']+')`. Two consequences when adding a new lib-using example:
+
+1. **Lib `module.exports = { ... }` must be a single line of identifiers only.** Don't put complex values inline — the regex captures everything between the first `{` and first `}` and splits on commas, so inline arrays/nested objects/multi-line exports become phantom destructure names. Declare values as `const` above:
+   ```js
+   const w = 120
+   const h = 150
+   const values = [/* ...18000 numbers... */]
+   module.exports = { w, h, values }      // ✅ bundler-safe
+   ```
+2. **The consumer file must use bare destructure names matching the lib's exports.** The bundler strips your `require('./lib/x')` line and emits its own destructure with the lib's raw names. So `const { w: WIDTH } = require('./lib/x')` will leave `WIDTH` undefined in the bundle. Use bare names and rebuild the object locally if you want a namespace.
+
+Symptom of either: the bundled `.jscad` is much smaller than expected, or evaluating it throws `ReferenceError: X is not defined`. Inspect the first few lines of the bundled output to see what destructure the bundler emitted.
+
+### Image-input demos (lithophane pattern)
+
+`examples/lithophane.jscad` is the template for any demo whose input is a raster image. `.jscad` files run sandboxed at render time with no `fs` access, so image data must be embedded as JS, not read from disk. The pipeline:
+
+```bash
+# preprocessor: image → grayscale PGM (via ImageMagick) → JS data module
+node scripts/build-lithophane-data.js path/to/photo.jpg 120
+# regenerate the bundle so the openjscad.xyz link picks up the new heightmap
+node scripts/bundle-examples.js
+```
+
+`build-lithophane-data.js` uses ImageMagick's `convert` (zero npm deps) and emits the lib in the bundler-safe shape described above. If you copy the pattern for a new image-input demo (terrain ribbon, lithophane variants, embossed plaque), keep the same export shape — see the bundler caveats one section up.
 
 ### Marching cubes / implicit surfaces
 

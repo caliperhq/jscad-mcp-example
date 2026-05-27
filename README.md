@@ -91,13 +91,14 @@ demos/engine/                multi-file demo (cutaway 4-stroke engine)
 scripts/
   bundle-engine.js           regenerates engine_bundled.jscad
   bundle-examples.js         regenerates the examples/*_bundled.jscad files
+  build-lithophane-data.js   preprocess an image → examples/lib/litho_heightmap.js
   scrub-check.sh             pre-push scrub verification (allowlist-based)
 tests/                       unit tests for the math helpers
 ```
 
 ## Built with jscad-mcp
 
-This repo was built in a single Claude Code session using the same jscad-mcp MCP server it demonstrates. The brainstorming phase [estimated about 9 hours of work](EXAMPLES.md#postscript-estimates-vs-reality) at human-developer pace; the actual perception loop — Claude writes geometry, Claude renders it, Claude sees what came out and adjusts — turns out to be a major accelerator. See the postscript in EXAMPLES.md for the full estimates-vs-reality story.
+This repo's initial set of demos (cycloidal drive through heatsink, plus the engine) was built in a single Claude Code session using the same jscad-mcp MCP server it demonstrates. The brainstorming phase [estimated about 9 hours of work](EXAMPLES.md#postscript-estimates-vs-reality) at human-developer pace; the actual perception loop — Claude writes geometry, Claude renders it, Claude sees what came out and adjusts — turns out to be a major accelerator. See the postscript in EXAMPLES.md for the full estimates-vs-reality story. The HO-scale models and the lithophane example were added in later sessions following the same loop.
 
 ## License
 
