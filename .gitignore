@@ -5,6 +5,7 @@ node_modules/
 docs/superpowers/
 .scrub-patterns.local
 examples/screenshots/*/.iteration-frames/
+examples/screenshots/*/.sweep-frames/
 demos/*/screenshots/.iteration-frames/
 demos/*/screenshots/.crank-frames/
 *.log

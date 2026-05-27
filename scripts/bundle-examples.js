@@ -9,7 +9,14 @@ const EXAMPLES_DIR = path.join(__dirname, '..', 'examples')
 // destructured into top-level consts so the entry can reference them.
 const TARGETS = [
   { entry: 'cycloidal_drive.jscad', out: 'cycloidal_drive_bundled.jscad' },
-  { entry: 'gyroid.jscad',          out: 'gyroid_bundled.jscad' }
+  { entry: 'gyroid.jscad',          out: 'gyroid_bundled.jscad' },
+  { entry: 'vase.jscad',            out: 'vase_bundled.jscad' },
+  { entry: 'voronoi_panel.jscad',   out: 'voronoi_panel_bundled.jscad' },
+  { entry: 'thread.jscad',          out: 'thread_bundled.jscad' },
+  { entry: 'gear_pair.jscad',       out: 'gear_pair_bundled.jscad' },
+  { entry: 'snap_box.jscad',        out: 'snap_box_bundled.jscad' },
+  { entry: 'caliper.jscad',         out: 'caliper_bundled.jscad' },
+  { entry: 'heatsink.jscad',        out: 'heatsink_bundled.jscad' }
 ]
 
 const RELATIVE_REQUIRE = /const\s+\{([^}]*)\}\s*=\s*require\(['"](\.\/[^'"]+)['"]\)\s*;?\s*\n/g
