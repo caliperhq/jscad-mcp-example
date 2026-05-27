@@ -49,9 +49,12 @@ const buildAll = (params) => {
   const discFlat = polygon({ points: discProfile })
   const discSolid = extrudeLinear({ height: p.discThickness }, discFlat)
 
-  // Output-pin holes: circle of N-1 holes near the center, oversized for eccentric motion
+  // Output-pin holes: circle of N-1 holes near the center, oversized for eccentric motion.
+  // Hole-circle radius is sized so (N-1) holes of outputHoleRadius don't overlap:
+  // arc spacing = 2π·R/(N-1) must exceed 2·outputHoleRadius. discDiameter * 0.27 keeps
+  // ~1mm of disc material between adjacent holes at the default pinCount.
   const outputHoleRadius = p.pinRadius * 1.6
-  const outputHoleCircleRadius = p.discDiameter * 0.18
+  const outputHoleCircleRadius = p.discDiameter * 0.27
   const outputHoles = []
   for (let i = 0; i < p.pinCount - 1; i++) {
     const a = (i / (p.pinCount - 1)) * 2 * Math.PI
