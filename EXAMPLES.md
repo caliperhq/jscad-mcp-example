@@ -228,8 +228,6 @@ detours along the way:
 - Diagnosing and rebuilding the jscad-mcp native bindings for Node 24 (a
   documented patch in the upstream README but still a real interruption).
 - Installing `media-libs/exiftool` for the EXIF scrub step.
-- Deleting and recreating the GitHub repo twice to clean up a leaked email
-  address that exposed a real name in `git log` history.
 - A geometry bug in the cycloidal disc (output-pin holes overlapping into a
   flower void) and a marching-cubes failure on the gyroid (the `|f|-t`
   kink at f=0 producing non-manifold triangles). Both fixes are visible in
