@@ -1,5 +1,8 @@
 node_modules/
 .jscad-cache/
+.playwright-mcp/
+.superpowers/
+docs/superpowers/
 *.log
 .DS_Store
 .env
