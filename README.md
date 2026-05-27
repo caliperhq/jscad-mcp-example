@@ -1,6 +1,10 @@
 # jscad-mcp-example
 
+> Part of [**caliperhq**](https://caliperhq.dev) — open-source tools that give Claude senses for the things it builds.
+
 Demo projects and walkthroughs for [jscad-mcp](https://github.com/caliperhq/jscad-mcp) — an MCP server that gives Claude visual and structural awareness of OpenJSCAD models.
+
+A rich web gallery (with per-demo pages, parameters, and "try in browser" links) lives at **[caliperhq.dev/projects/jscad-mcp-example/gallery/](https://caliperhq.dev/projects/jscad-mcp-example/gallery/)**.
 
 Each demo is chosen because **it would be painful to design without the visual feedback loop**, and each leans on a different jscad-mcp feature (`take_standard_views`, `slice`, `list_parts` + `highlight` + `label_parts`).
 
@@ -98,7 +102,12 @@ tests/                       unit tests for the math helpers
 
 ## Built with jscad-mcp
 
-This repo's initial set of demos (cycloidal drive through heatsink, plus the engine) was built in a single Claude Code session using the same jscad-mcp MCP server it demonstrates. The brainstorming phase [estimated about 9 hours of work](EXAMPLES.md#postscript-estimates-vs-reality) at human-developer pace; the actual perception loop — Claude writes geometry, Claude renders it, Claude sees what came out and adjusts — turns out to be a major accelerator. See the postscript in EXAMPLES.md for the full estimates-vs-reality story. The HO-scale models and the lithophane example were added in later sessions following the same loop.
+This repo's initial set of demos (cycloidal drive through heatsink, plus the engine) was built in a single Claude Code session using the same jscad-mcp MCP server it demonstrates. The brainstorming phase [estimated about 9 hours of work](EXAMPLES.md#postscript-estimates-vs-reality) at human-developer pace; the actual perception loop — Claude writes geometry, Claude renders it, Claude sees what came out and adjusts — turns out to be a major accelerator. The HO-scale models and the lithophane example were added in later sessions following the same loop.
+
+Two longer-form essays expand on what that loop felt like:
+
+- **[The four-round engine](https://caliperhq.dev/essays/four-round-engine/)** — the cutaway engine shipped to `main` four times before the bugs were out; each round taught a different perception-loop lesson.
+- **[Estimates vs reality](https://caliperhq.dev/essays/estimates-vs-reality/)** — the full timing arc across both sessions, with the updated 13-demo numbers.
 
 ## License
 
