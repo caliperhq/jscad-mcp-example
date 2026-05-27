@@ -42,7 +42,9 @@ To **render** the demos visually you need [jscad-mcp](https://github.com/caliper
 ```
 examples/                    single-file demos
   cycloidal_drive.jscad
+  cycloidal_drive_bundled.jscad   generated single-file bundle for openjscad.xyz
   gyroid.jscad
+  gyroid_bundled.jscad            generated single-file bundle for openjscad.xyz
   lib/                       shared helpers (cycloid math, gyroid field, marching cubes + tables)
   screenshots/               per-demo screenshots + GIFs
 demos/engine/                multi-file demo (cutaway engine)
@@ -51,6 +53,7 @@ demos/engine/                multi-file demo (cutaway engine)
   engine_bundled.jscad       generated single-file bundle for openjscad.xyz
 scripts/
   bundle-engine.js           regenerates engine_bundled.jscad
+  bundle-examples.js         regenerates the examples/*_bundled.jscad files
   scrub-check.sh             pre-push scrub verification (allowlist-based)
 tests/                       unit tests for the math helpers
 ```

@@ -11,8 +11,9 @@
 //   slice x=0                  -> different section, proves 3D periodicity
 //   take_image (high oblique)  -> surface curvature
 //
-// Try in browser:
-//   https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/gyroid.jscad
+// Try in browser (uses the bundled single-file copy; openjscad.xyz cannot
+// resolve relative requires like ./lib/gyroid against a GitHub raw URL):
+//   https://openjscad.xyz/?uri=https://raw.githubusercontent.com/caliperhq/jscad-mcp-example/main/examples/gyroid_bundled.jscad
 
 const { primitives, booleans, transforms } = require('@jscad/modeling')
 const { cuboid, polyhedron } = primitives

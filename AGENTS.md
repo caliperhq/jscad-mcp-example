@@ -40,7 +40,9 @@ A failing scrub-check blocks the push by design — fix the leak first.
 ```
 examples/                    single-file demos
   cycloidal_drive.jscad
+  cycloidal_drive_bundled.jscad   generated single-file bundle for openjscad.xyz
   gyroid.jscad
+  gyroid_bundled.jscad            generated single-file bundle for openjscad.xyz
   lib/
     cycloid.js               cycloid profile generator (Hugo-Elias form)
     gyroid.js                gyroid scalar field
@@ -54,6 +56,7 @@ demos/engine/                multi-file demo (cutaway 4-stroke engine)
   screenshots/               iso.png, slice_y.png, ..., crank_sweep.gif
 scripts/
   bundle-engine.js           regenerates engine_bundled.jscad
+  bundle-examples.js         regenerates the examples/*_bundled.jscad files
   scrub-check.sh             pre-push verification
 tests/                       node:test unit tests for the math helpers
 docs/
@@ -104,15 +107,16 @@ This is documented in `skills/jscad-mcp/SKILL.md` in the tool repo. Don't waste 
 
 The engine assembly applies `colorize()` to each part via `PART_COLORS` in `assembly.js`. Distinctive RGBA per part makes the cutaway readable at a glance. When adding a new multi-part assembly, follow the same pattern — the renderer respects per-solid colors.
 
-### Regenerate `engine_bundled.jscad`
+### Regenerate the `*_bundled.jscad` files
 
-Any time a file in `demos/engine/` (other than `engine_bundled.jscad` itself) changes, regenerate the bundle so the openjscad.xyz "Try in browser" link stays current:
+The openjscad.xyz "Try in browser" links point at single-file bundles because openjscad.xyz cannot resolve relative requires (e.g. `./lib/cycloid`) against a GitHub raw URL. Any time a file under `demos/engine/` or any `examples/*.jscad` / `examples/lib/*.js` file changes, regenerate the matching bundle:
 
 ```bash
-node scripts/bundle-engine.js
+node scripts/bundle-engine.js     # -> demos/engine/engine_bundled.jscad
+node scripts/bundle-examples.js   # -> examples/cycloidal_drive_bundled.jscad, examples/gyroid_bundled.jscad
 ```
 
-`tests/bundle-engine.test.js` verifies the bundle structure and that it evaluates with the right exports. CI does not currently run this (no GitHub Actions workflow); the human author runs it locally before pushing.
+`tests/bundle-engine.test.js` and `tests/bundle-examples.test.js` verify the bundle structure and that the output evaluates with the right exports. CI does not currently run these (no GitHub Actions workflow); the human author runs them locally before pushing.
 
 ### Marching cubes / implicit surfaces
 
@@ -154,9 +158,10 @@ node --test tests/cycloid.test.js   # cycloidal profile
 node --test tests/marching-cubes.test.js
 node --test tests/gyroid.test.js
 node --test tests/bundle-engine.test.js
+node --test tests/bundle-examples.test.js
 ```
 
-Tests are pure-JS where possible (no `@jscad/modeling` dependency for cycloid / gyroid / marching cubes). The bundle-engine test needs `@jscad/modeling` available; set `NODE_PATH` if running outside the tool repo.
+Tests are pure-JS where possible (no `@jscad/modeling` dependency for cycloid / gyroid / marching cubes). The `bundle-engine` and `bundle-examples` tests need `@jscad/modeling` available; set `NODE_PATH` if running outside the tool repo.
 
 ---
 
